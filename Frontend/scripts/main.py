@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+import requests
 
 # Create the main window
 root = tk.Tk()
@@ -26,10 +27,12 @@ password_entry.pack(pady=5)
 def login():
     username = username_entry.get()
     password = password_entry.get()
-    if username == "user" and password == "pass":  # Placeholder logic
-        messagebox.showinfo("Login Info", "Login Successful!")
+    response = requests.post('http://localhost:8000/api/login', json = {'username': username, 'password' : password})
+
+    if response.status_code == 200:
+        messagebox.showinfo("Login Info", response.json()['message'])
     else:
-        messagebox.showwarning("Login Info", "Invalid Credentials")
+        messagebox.showinfo("Login Info", response.json()['message'])
 
 # Create a login button
 login_button = tk.Button(root, text="Login", command=login)
