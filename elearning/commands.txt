@@ -1,0 +1,5 @@
+create migration files for the specified app: python manage.py makemigrations core
+
+To apply this migration and create the corresponding database tables, run the following command: python manage.py migrate
+
+To create the table and to view in the sqlite3 : python manage.py sqlmigrate core "formed number code for model"
