@@ -5,14 +5,14 @@ The E-Learning Platform is a comprehensive solution for creating and delivering 
 
 ## Features
 1. **User Roles :** The platform distinguishes between students and instructors, providing customized interfaces and functionalities for each role.
-- *Students:*Can enroll in courses, watch video lectures, take quizzes, track their progress, and receive certificates upon course completion.
+    - *Students:* Can enroll in courses, watch video lectures, take quizzes, track their progress, and receive certificates upon course completion.
 
-- *Instructors :* Can create courses, upload video content, design quizzes, track student performance, and issue certificates.
+    - *Instructors :* Can create courses, upload video content, design quizzes, track student performance, and issue certificates.
 2.  **Course Management:** Instructors can create and manage their courses, including adding/removing content, setting quiz questions, and monitoring student progress.
 3. **Progress Tracking :** Students can track their learning progress throughout the course, enabling them to see which modules they have completed and which are still pending.
 4. **Certificates :** Upon completing a course, students can receive a certificate to validate their achievement.
 5. **Quizzes :** Courses can include quizzes to assess student understanding and reinforce learning.
-6. **Responsive Interface:**The platform is designed to be user-friendly and responsive, with a clear and intuitive interface.
+6. **Responsive Interface:** The platform is designed to be user-friendly and responsive, with a clear and intuitive interface.
 
 ## Tech Stack
 1. **Python:** The core programming language used for developing the platform.
