@@ -53,7 +53,6 @@ class LoginView(APIView):
             return Response({"message" : "Invalid Credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 # Logout View
-# @csrf_exempt
 @method_decorator(csrf_exempt, name='dispatch')
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
