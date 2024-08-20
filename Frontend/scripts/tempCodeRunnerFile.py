@@ -1,0 +1,1 @@
+self.window.withdraw()  # Hide the current window
