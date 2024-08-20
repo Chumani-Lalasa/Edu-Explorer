@@ -22,6 +22,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('api/register', views.RegisterView.as_view(), name="register"), 
-    path('api/login', views.LoginView.as_view(), name='login'),
+    path('api/login/', views.LoginView.as_view(), name='login'),
     path('api/logout', views.LogoutView.as_view(), name='logout'),
+    path('api/courses/create/', views.CourseCreateView.as_view(), name='course-create'),
+    path('api/courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course-update'),
+    path('api/courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course-delete'),
 ]
