@@ -10,8 +10,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view
 from django.utils.decorators import method_decorator
-from .models import Course
-from .serializers import CourseSerializer
+from .models import Course, Content, Module
+from .serializers import CourseSerializer, ModuleSerializer, ContentSerializer
 
 # @csrf_exempt
 # @api_view(['POST'])
@@ -99,4 +99,84 @@ class CourseDeleteView(APIView):
         if course.instructor != request.user:
             return Response({"error" : "You are not authorized to delete this course."}, status=status.HTTP_403_FORBIDDEN)
         course.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+# Create Module View
+class ModuleCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, id=course_id)
+        if course.instructor != request.user:
+            return Response({"error" : "You are not authorized to add modules to this course."}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = ModuleSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(course = course)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+# Update Module View
+class ModuleUpdateview(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        module = get_object_or_404(Module, pk=pk)
+        if module.course.instructor != request.user:
+            return Response({"error" : "You are not authorized to update this module."}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = ModuleSerializer(module, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+# Delete Module View
+class ModuleDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        module = get_object_or_404(Module, pk=pk)
+        if module.course.instructor != request.user:
+            return Response({"error" : "You are not authorized to delete this module."}, status=status.HTTP_403_FORBIDDEN)
+        module.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+# Create Content View
+class ContentCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, module_id):
+        module = get_object_or_404(Module, id=module_id)
+        if module.course.instructor != request.user:
+            return Response({"error" : "You are not authorized to add content to this module."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ContentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(module=module)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Update Content View
+class ContentUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        content = get_object_or_404(Content, pk=pk)
+        if content.module.course.instructor != request.user:
+            return Response({"error" : "You are not authorized to update this content."}, status=status.HTTP_403_FORBIDDEN)
+        serializer = ContentSerializer(content, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Delete Content View
+class ContentDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        content = get_object_or_404(Content, pk=pk)
+        if content.module.course.instructor != request.user:
+            return Response({"error" : "You are not authorized to delete this content."}, status=status.HTTP_403_FORBIDDEN)
+        content.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

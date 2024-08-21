@@ -27,4 +27,11 @@ urlpatterns = [
     path('api/courses/create/', views.CourseCreateView.as_view(), name='course-create'),
     path('api/courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course-update'),
     path('api/courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course-delete'),
+
+    path('api/courses/<int:course_id>/modules/create/', views.ModuleCreateView.as_view(), name='module-create'),
+    path('api/modules/<int:pk>/update/', views.ModuleUpdateview.as_view(), name='module-update'),
+    path('api/modules/<int:pk>/delete', views.ModuleDeleteView.as_view(), name='module-delete'),
+    path('api/modules/<int:module_id>/contents/create/', views.ContentCreateView.as_view(), name='content-create'),
+    path('api/contents/<int:pk>/update/', views.ContentUpdateView.as_view(), name='content-update'),
+    path('api/contents/<int:pk>/delete/', views.ContentDeleteView.as_view(), name='content-delete'),
 ]

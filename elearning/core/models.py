@@ -23,6 +23,33 @@ class Course(models.Model):
     def __str__(self):
         return self.title
     
+# Module Model (New)
+class Module(models.Model):
+    course = models.ForeignKey(Course, related_name='modules', on_delete=models.CASCADE)
+    description = models.TextField()
+    title = models.CharField(max_length=200)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f'{self.title} - {self.course.title}'
+    
+# Content Model (New)
+class Content(models.Model):
+    module = models.ForeignKey(Module, related_name='contents', on_delete=models.CASCADE)
+    content_type = models.CharField(max_length=50)  # e.g., "video", "article", "quiz"
+    text = models.TextField(blank=True)  # Used for articles, descriptions, etc.
+    file = models.FileField(upload_to='course_contents/', blank=True)  # Used for files like PDFs, images, etc.
+    order = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f'{self.content_type} - {self.module.title}'
+    
 # Lesson Model
 class Lesson(models.Model):
     course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE)
