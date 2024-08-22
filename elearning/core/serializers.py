@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Module, Content
+from .models import Course, Module, Content, CourseProgress, QuizProgress, QuestionAnswer
 
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,3 +17,17 @@ class ContentSerializer(serializers.ModelSerializer):
         model = Content
         fields = ['id', 'module', 'content_type', 'text', 'file', 'order']
 
+class CourseProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourseProgress
+        fields = ['user', 'course', 'completed_modules', 'completion_status', 'started_at', 'completed_at']
+
+class QuizProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuizProgress
+        fields = ['user', 'quiz', 'score', 'completed', 'completed_at']
+
+class QuestionAnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = QuestionAnswer
+        fields = ['user', 'question', 'selected_answer', 'is_correct']
