@@ -15,22 +15,27 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from rest_framework.routers import DefaultRouter
+from django.urls import path, include
 from core import views
+
+router = DefaultRouter()
+router.register(r'courses', views.CourseViewSet, basename='course')
+router.register(r'quizzes', views.EvaluateQuizViewSet, basename='quiz')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    path('api/register', views.RegisterView.as_view(), name="register"), 
+    path('api/register/', views.RegisterView.as_view(), name="register"), 
     path('api/login/', views.LoginView.as_view(), name='login'),
-    path('api/logout', views.LogoutView.as_view(), name='logout'),
+    path('api/logout/', views.LogoutView.as_view(), name='logout'),
     path('api/courses/create/', views.CourseCreateView.as_view(), name='course-create'),
     path('api/courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course-update'),
     path('api/courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course-delete'),
 
     path('api/courses/<int:course_id>/modules/create/', views.ModuleCreateView.as_view(), name='module-create'),
     path('api/modules/<int:pk>/update/', views.ModuleUpdateview.as_view(), name='module-update'),
-    path('api/modules/<int:pk>/delete', views.ModuleDeleteView.as_view(), name='module-delete'),
+    path('api/modules/<int:pk>/delete/', views.ModuleDeleteView.as_view(), name='module-delete'),
     path('api/modules/<int:module_id>/contents/create/', views.ContentCreateView.as_view(), name='content-create'),
     path('api/contents/<int:pk>/update/', views.ContentUpdateView.as_view(), name='content-update'),
     path('api/contents/<int:pk>/delete/', views.ContentDeleteView.as_view(), name='content-delete'),
@@ -38,4 +43,13 @@ urlpatterns = [
     path('progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
     path('progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
     path('progress/question/<int:question_id>/answer/', views.QuestionAnswerView.as_view(), name='question-answer'),
-]
+
+    # Ensure correct URL patterns for quizzes
+    path('quizzes/<int:pk>/', views.QuizDetailView.as_view(), name='quiz-detail'),
+    path('quizzes/<int:course_id>/create/', views.QuizCreateView.as_view(), name='quiz-create'),
+    path('quizzes/<int:pk>/evaluate/', views.EvaluateQuizViewSet.as_view({'post': 'evaluate'}), name='evaluate-quiz'),
+
+    # path('evaluate/', views.EvaluateQuizViewSet.as_view(), name='quiz-evaluate'),
+
+    path('', include(router.urls)),
+] 

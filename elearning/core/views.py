@@ -1,19 +1,17 @@
 from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, viewsets, generics
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from django.utils.decorators import method_decorator
-from .models import Course, Content, Module
-from .serializers import CourseSerializer, ModuleSerializer, ContentSerializer
-from .models import CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question
-from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer
+from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer
+from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer
 
 # @csrf_exempt
 # @api_view(['POST'])
@@ -225,4 +223,57 @@ class QuestionAnswerView(APIView):
         answer.save()
         serializer = QuestionAnswerSerializer(answer)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class QuizViewSet(viewsets.ModelViewSet):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
+
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+
+class AnswerViewSet(viewsets.ModelViewSet):
+    queryset = Answer.objects.all()
+    serializer_class = AnswerSerializer
+
+class EvaluateQuizViewSet(viewsets.ViewSet):
+    @action(detail=True, methods=['post'])
+    def evaluate(self, request, pk=None):
+        quiz = self.get_object()
+        answers = request.data.get('answers', [])
+
+        if not answers:
+            return Response({'error': 'No answers provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        correct = 0
+        total = quiz.questions.count()
+
+        for answer in answers:
+            question_id = answer.get('question_id')
+            selected_answer_id = answer.get('answer_id')
+
+            question = get_object_or_404(Question, id=question_id)
+            answer_obj = get_object_or_404(Answer, id=selected_answer_id)
+
+            if question.correct_answer == answer_obj.id:
+                correct += 1
+
+        score_percentage = (correct / total) * 100 if total else 0
+
+        # Save progress or other logic here
+
+        return Response({'score': score_percentage}, status=status.HTTP_200_OK)
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+
+class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
+
+class QuizCreateView(generics.CreateAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
 
