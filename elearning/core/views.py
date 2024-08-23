@@ -12,6 +12,8 @@ from rest_framework.decorators import api_view
 from django.utils.decorators import method_decorator
 from .models import Course, Content, Module
 from .serializers import CourseSerializer, ModuleSerializer, ContentSerializer
+from .models import CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question
+from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer
 
 # @csrf_exempt
 # @api_view(['POST'])
@@ -180,3 +182,47 @@ class ContentDeleteView(APIView):
             return Response({"error" : "You are not authorized to delete this content."}, status=status.HTTP_403_FORBIDDEN)
         content.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class CourseProgressView(APIView):
+    def get(self, request, course_id):
+        progress = get_object_or_404(CourseProgress, user=request.user, course_id=course_id)
+        serializer = CourseProgressSerializer(progress)
+        return Response(serializer.data)
+
+    def post(self, request, course_id):
+        course = get_object_or_404(Course, id=course_id)
+        progress, created = CourseProgress.objects.get_or_create(user=request.user, course=course)
+        progress.completed_modules.add(*request.data.get('completed_modules', []))
+        progress.completion_status = request.data.get('completion_status', progress.completion_status)
+        progress.save()
+        serializer = CourseProgressSerializer(progress)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class QuizProgressView(APIView):
+    def get(self, request, quiz_id):
+        progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
+        serializer = QuizProgressSerializer(progress)
+        return Response(serializer.data)
+
+    def post(self, request, quiz_id):
+        quiz = get_object_or_404(Quiz, id=quiz_id)
+        progress, created = QuizProgress.objects.get_or_create(user=request.user, quiz=quiz)
+        progress.score = request.data.get('score', progress.score)
+        progress.completed = request.data.get('completed', progress.completed)
+        progress.completed_at = request.data.get('completed_at', progress.completed_at)
+        progress.save()
+        serializer = QuizProgressSerializer(progress)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class QuestionAnswerView(APIView):
+    def post(self, request, question_id):
+        question = get_object_or_404(Question, id=question_id)
+        selected_answer = request.data.get('selected_answer')
+        is_correct = selected_answer == question.correct_answer
+        answer, created = QuestionAnswer.objects.get_or_create(user=request.user, question=question)
+        answer.selected_answer = selected_answer
+        answer.is_correct = is_correct
+        answer.save()
+        serializer = QuestionAnswerSerializer(answer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
