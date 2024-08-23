@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+# from .models import Course, Quiz, Question
+# from .models import Course, Quiz, Question
 
 # Create your models here.
 
@@ -81,4 +83,37 @@ class Question(models.Model):
 
     def __str__(self):
         return self.text
+    
+# Model to track course progress
+class CourseProgress(models.Model):
+    user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, related_name='progress', on_delete=models.CASCADE)
+    completed_modules = models.ManyToManyField('Module', blank=True)
+    completion_status = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.course.title}'
+
+# Model to track quiz progress
+class QuizProgress(models.Model):
+    user = models.ForeignKey(User, related_name='quiz_progress', on_delete=models.CASCADE)
+    quiz = models.ForeignKey(Quiz, related_name='progress', on_delete=models.CASCADE)
+    score = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.quiz.title}'
+
+# Model to track question answers
+class QuestionAnswer(models.Model):
+    user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name='answers', on_delete=models.CASCADE)
+    selected_answer = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.question.text}'
 
