@@ -16,8 +16,10 @@ class UserProfile(models.Model):
     
 #Course Model
 class Course(models.Model):
+    name = models.CharField(max_length=255, default='Unnamed Course')
     title = models.CharField(max_length=200)
     description = models.TextField()
+    duration = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     instructor = models.ForeignKey(User, related_name='courses', on_delete=models.CASCADE)
@@ -40,8 +42,14 @@ class Module(models.Model):
     
 # Content Model (New)
 class Content(models.Model):
+    CONTENT_TYPE_CHOICES = [
+        ('video', 'Video'),
+        ('article', 'Article'),
+        ('quiz', 'Quiz'),
+        ('file', 'File'),
+    ]
     module = models.ForeignKey(Module, related_name='contents', on_delete=models.CASCADE)
-    content_type = models.CharField(max_length=50)  # e.g., "video", "article", "quiz"
+    content_type = models.CharField(max_length=50, choices=CONTENT_TYPE_CHOICES)  # e.g., "video", "article", "quiz"
     text = models.TextField(blank=True)  # Used for articles, descriptions, etc.
     file = models.FileField(upload_to='course_contents/', blank=True)  # Used for files like PDFs, images, etc.
     order = models.PositiveIntegerField()
@@ -80,6 +88,7 @@ class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     text = models.CharField(max_length=500)
     correct_answer = models.CharField(max_length=255)
+    difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
 
     def __str__(self):
         return self.text
@@ -103,6 +112,7 @@ class QuizProgress(models.Model):
     score = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
+    feedback = models.TextField(blank=True)
 
     def __str__(self):
         return f'{self.user.username} - {self.quiz.title}'
@@ -110,10 +120,16 @@ class QuizProgress(models.Model):
 # Model to track question answers
 class QuestionAnswer(models.Model):
     user = models.ForeignKey(User, related_name='question_answers', on_delete=models.CASCADE)
-    question = models.ForeignKey(Question, related_name='answers', on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name='question_answers_list', on_delete=models.CASCADE)
     selected_answer = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.user.username} - {self.question.text}'
+    
+# Answer
+class Answer(models.Model):
+    question = models.ForeignKey(Question, related_name='answers_list', on_delete=models.CASCADE)
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
 
