@@ -110,7 +110,10 @@ class ModuleCreateView(APIView):
 
     def post(self, request, course_id):
         logger.info(f'Received request to create module for course_id: {course_id}')
+        logger.info(f'Authenticated user: {request.user}')
         course = get_object_or_404(Course, id=course_id)
+        logger.info(f'Course instructor: {course.instructor}')
+        
         if course.instructor != request.user:
             return Response({"error" : "You are not authorized to add modules to this course."}, status=status.HTTP_403_FORBIDDEN)
         

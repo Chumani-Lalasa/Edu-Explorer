@@ -126,7 +126,7 @@ class LoginPage:
         password = self.password_entry.get()
 
         try:
-            response = requests.post('http://127.0.0.1:8000/api/login', data={'username': username, 'password': password})
+            response = requests.post('http://127.0.0.1:8000/api/login/', data={'username': username, 'password': password})
             data = response.json()
 
             if response.status_code == 200:
@@ -173,7 +173,7 @@ def signup_page():
             return
 
         try:
-            response = requests.post('http://127.0.0.1:8000/api/register',
+            response = requests.post('http://127.0.0.1:8000/api/register/',
                                      data={'username': username, 'email': email, 'password': password})
             if response.status_code == 201:
                 messagebox.showinfo('Success', 'Account created successfully')

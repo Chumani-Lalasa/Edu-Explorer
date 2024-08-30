@@ -23,6 +23,7 @@ class ModuleSerializer(serializers.ModelSerializer):
 
 # Content Serializer
 class ContentSerializer(serializers.ModelSerializer):
+    module = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all(), required=True)
     class Meta:
         model = Content
         fields = ['id', 'module', 'content_type', 'text', 'file', 'order']
