@@ -126,7 +126,17 @@ class QuestionAnswer(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.question.text}'
-    
+
+# Certificates Model
+class Certificate(models.Model):
+    user = models.ForeignKey(User, related_name='certificates', on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, related_name='certificates', on_delete=models.CASCADE)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    certificate_code = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return f'Certificate for {self.user.username} - {self.course.title}'
+
 # Answer
 class Answer(models.Model):
     question = models.ForeignKey(Question, related_name='answers_list', on_delete=models.CASCADE)
