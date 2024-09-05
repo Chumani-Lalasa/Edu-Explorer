@@ -1,1 +1,1 @@
-self.window.withdraw()  # Hide the current window
+1166x718

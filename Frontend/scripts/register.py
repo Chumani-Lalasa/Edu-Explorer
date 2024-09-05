@@ -1,124 +1,90 @@
 import requests
 from tkinter import *
 from tkinter import messagebox
-import ast
 from PIL import Image, ImageTk
 
+class RegisterApp:
+    def __init__(self, root):
+        self.window = root
+        self.window.title("Register")
+        self.window.geometry('925x500+300+200')
+        self.window.configure(bg='#fff')
+        self.window.resizable(False, False)
 
-window = Tk()
-window.title("Register")
-window.geometry('925x500+300+200')
-window.configure(bg='#fff')
-window.resizable(False, False)
+        # Load and resize the image
+        self.image = Image.open('Frontend/scripts/image-1.jpg')
+        self.resized_image = self.image.resize((925, 500), Image.Resampling.LANCZOS)
+        self.bg_image = ImageTk.PhotoImage(self.resized_image)
 
-def signup():
-    username = user.get()
-    email = email_entry.get()
-    password = code.get()
-    confirm_password = confirm_code.get()
+        # Set the image as the background of the window
+        self.bg_label = Label(self.window, image=self.bg_image)
+        self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
 
-    if password != confirm_password:
-        messagebox.showerror("Error", "Passwords do not match")
-        return
-    
-    # Data to send to the Django API
-    data = {
-        'username' : username,
-        'email' : email,
-        'password' : password
-    }
+        # Registration Frame
+        self.reg_frame = Frame(self.window, bg='#fff', width=400, height=350)
+        self.reg_frame.place(x=500, y=80)
 
-    try:
-        response = requests.post('http://127.0.0.1:8000/api/register', data=data)
+        # Heading
+        self.heading = Label(self.reg_frame, text='Create Account', font=('Microsoft Yahei UI Light', 23, 'bold'), bg='#fff')
+        self.heading.place(x=50, y=15)
 
-        if response.status_code == 201:
-            messagebox.showinfo("Success", "Registration successful!")
-        elif response.status_code == 400:
-            messagebox.showerror("Error", response.json().get('message'))
-        else:
-            messagebox.showerror("Error", "Registration failed, try again!")
-    except requests.exceptions.RequestException as e:
-        messagebox.showerror("Error", f"failed to connect to server: {e}")
-    # logic for the sign up
-    print("logic for signup")
+        # Username Entry
+        self.username_label = Label(self.reg_frame, text='Username', font=('Microsoft Yahei UI Light', 12), bg='#fff')
+        self.username_label.place(x=50, y=80)
+        self.username_entry = Entry(self.reg_frame, font=('Microsoft Yahei UI Light', 12), bd=1, bg='#eee', insertbackground='black')
+        self.username_entry.place(x=50, y=105, width=300)
 
-# Load and resize the image
-image = Image.open('Frontend/scripts/image-1.jpg')
-resized_image = image.resize((400, 400), Image.Resampling.LANCZOS)  # Resize to 250x250
-img = ImageTk.PhotoImage(resized_image)
-Label(window, image=img, border=0, bg='white').place(x=50, y=90)
+        # Email Entry
+        self.email_label = Label(self.reg_frame, text='Email', font=('Microsoft Yahei UI Light', 12), bg='#fff')
+        self.email_label.place(x=50, y=140)
+        self.email_entry = Entry(self.reg_frame, font=('Microsoft Yahei UI Light', 12), bd=1, bg='#eee', insertbackground='black')
+        self.email_entry.place(x=50, y=165, width=300)
 
-frame = Frame(window, width=350, height=450, bg='#fff')
-frame.place(x=480, y=50)
+        # Password Entry
+        self.password_label = Label(self.reg_frame, text='Password', font=('Microsoft Yahei UI Light', 12), bg='#fff')
+        self.password_label.place(x=50, y=200)
+        self.password_entry = Entry(self.reg_frame, font=('Microsoft Yahei UI Light', 12), bd=1, bg='#eee', insertbackground='black', show='*')
+        self.password_entry.place(x=50, y=225, width=300)
 
-heading = Label(frame, text='Sign up', fg="#57a1f8", bg='white', font=('Microscoft Yahei UI Light', 23, 'bold'))
-heading.place(x = 100, y=5)
+        # Register Button
+        self.register_button = Button(self.reg_frame, text='Register', font=('Microsoft Yahei UI Light', 12, 'bold'), bg='#57a1f8', fg='white', command=self.register_user)
+        self.register_button.place(x=50, y=270, width=300, height=35)
 
-##########--------------------------------Username Entry
-def on_enter(e):
-    user.delete(0, 'end')
-def on_leave(e):
-    if user.get() == '':
-        user.insert(0, 'Username')
-user = Entry(frame, width=25, fg='black', border=0,bg='white', font=('Microsoft Yahei UI Light', 11))
-user.place(x=30, y=80)
-user.insert(0, 'Username')
-user.bind("<FocusIn>", on_enter)
-user.bind("<FocusOut>", on_leave)
+        # Login Button
+        self.login_button = Button(self.reg_frame, text='Already have an account? Login', font=('Microsoft Yahei UI Light', 10), bg='#fff', fg='#57a1f8', command=self.go_to_login)
+        self.login_button.place(x=50, y=320, width=300)
 
-Frame(frame, width=295, height=2, bg='black').place(x=25, y=107)
+    def register_user(self):
+        username = self.username_entry.get()
+        email = self.email_entry.get()
+        password = self.password_entry.get()
 
-#######---------------------- Email Entry
-def on_enter(e):
-    email_entry.delete(0, 'end')
-def on_leave(e):
-    if email_entry.get() == '':
-        email_entry.insert(0, 'Email')
-email_entry = Entry(frame, width=25, fg='black', border=0,bg='white', font=('Microsoft Yahei UI Light', 11))
-email_entry.place(x=30, y=150)
-email_entry.insert(0, 'Email')
-email_entry.bind("<FocusIn>", on_enter)
-email_entry.bind("<FocusOut>", on_leave)
-Frame(frame, width=295, height=2, bg='black').place(x=25, y=177)
+        if not username or not email or not password:
+            self.show_message("Please fill all fields!")
+            return
 
-#######--------------------------------Password Entry
-def on_enter(e):
-    code.delete(0, 'end')
-def on_leave(e):
-    if code.get() == '':
-        code.insert(0, 'Password')
-code = Entry(frame, width=25, fg='black', border=0,bg='white', font=('Microsoft Yahei UI Light', 11))
-code.place(x=30, y=220)
-code.insert(0, 'Password')
-code.bind("<FocusIn>", on_enter)
-code.bind("<FocusOut>", on_leave)
+        try:
+            response = requests.post('http://127.0.0.1:8000/api/register/', data={'username': username, 'email': email, 'password': password})
+            data = response.json()
 
-Frame(frame, width=295, height=2, bg='black').place(x=25, y=247)
+            if response.status_code == 201:
+                self.show_message("Registration successful!")
+            else:
+                self.show_message(data.get("message", "Registration failed!"))
+        except Exception as e:
+            self.show_message("Error connecting to server!")
 
-################-------------------------Confirm Password Entry
+    def show_message(self, message):
+        messagebox.showinfo("Registration Info", message)
 
-def on_enter(e):
-    confirm_code.delete(0, 'end')
-def on_leave(e):
-    if confirm_code.get() == '':
-        confirm_code.insert(0, 'Confirm Password')
-confirm_code = Entry(frame, width=25, fg='black', border=0,bg='white', font=('Microsoft Yahei UI Light', 11))
-confirm_code.place(x=30, y=290)
-confirm_code.insert(0, 'Confirm Password')
-confirm_code.bind("<FocusIn>", on_enter)
-confirm_code.bind("<FocusOut>", on_leave)
+    def go_to_login(self):
+        self.window.destroy()  # Close the registration window
+        login_window = Tk()  # Create a new Tkinter window for login
+        from login import LoginPage
+        LoginPage(login_window)  # Initialize the LoginPage with the new window
+        login_window.mainloop()  # Run the new login window
 
-Frame(frame, width=295, height=2, bg='black').place(x=25, y=317)
-
-
-
-#############-----------------------Sign Up Button
-Button(frame, width=39, pady=7, text='sign up', bg='#57a1f8', fg='white', border=0,command=signup).place(x=35, y=360)
-
-label = Label(frame, text='I have an account', fg='black', bg = 'white', font=('Microsoft Yahei UI Light', 9))
-label.place(x=90, y=400)
-
-signin = Button(frame, width=6, text='Sign in', border=0, bg='white', cursor='hand2', fg='#57a1f8')
-signin.place(x=200, y=400)
-
-window.mainloop()
+if __name__ == "__main__":
+    root = Tk()
+    app = RegisterApp(root)
+    root.mainloop()
