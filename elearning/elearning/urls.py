@@ -40,7 +40,7 @@ urlpatterns = [
     path('api/contents/<int:pk>/update/', views.ContentUpdateView.as_view(), name='content-update'),
     path('api/contents/<int:pk>/delete/', views.ContentDeleteView.as_view(), name='content-delete'),
 
-    path('progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
+    path('api/progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
     path('progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
     path('progress/question/<int:question_id>/answer/', views.QuestionAnswerView.as_view(), name='question-answer'),
 
