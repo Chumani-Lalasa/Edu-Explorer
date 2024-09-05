@@ -22,6 +22,18 @@ from core import views
 router = DefaultRouter()
 router.register(r'courses', views.CourseViewSet, basename='course')
 router.register(r'quizzes', views.EvaluateQuizViewSet, basename='quiz')
+router.register(r'questions', views.QuestionViewSet, basename='question')
+# router.register(r'quiz-progress', views.QuizProgressView)
+
+question_list = views.QuestionViewSet.as_view({
+    'get': 'list',
+    'post': 'create'
+})
+question_detail = views.QuestionViewSet.as_view({
+    'get': 'retrieve',
+    'put': 'update',
+    'delete': 'destroy'
+})
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,6 +45,7 @@ urlpatterns = [
     path('api/courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course-update'),
     path('api/courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course-delete'),
 
+    # Modules and contents
     path('api/courses/<int:course_id>/modules/create/', views.ModuleCreateView.as_view(), name='module-create'),
     path('api/modules/<int:pk>/update/', views.ModuleUpdateView.as_view(), name='module-update'),
     path('api/modules/<int:pk>/delete/', views.ModuleDeleteView.as_view(), name='module-delete'),
@@ -40,14 +53,21 @@ urlpatterns = [
     path('api/contents/<int:pk>/update/', views.ContentUpdateView.as_view(), name='content-update'),
     path('api/contents/<int:pk>/delete/', views.ContentDeleteView.as_view(), name='content-delete'),
 
+    # Progress tracking
     path('api/progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
     path('progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
     path('progress/question/<int:question_id>/answer/', views.QuestionAnswerView.as_view(), name='question-answer'),
 
-    # Ensure correct URL patterns for quizzes
-    path('quizzes/<int:pk>/', views.QuizDetailView.as_view(), name='quiz-detail'),
-    path('quizzes/<int:course_id>/create/', views.QuizCreateView.as_view(), name='quiz-create'),
-    path('quizzes/<int:pk>/evaluate/', views.EvaluateQuizViewSet.as_view({'post': 'evaluate'}), name='evaluate-quiz'),
+    # Questions
+    path('api/questions/', question_list, name='question-list'),
+    path('api/questions/<int:pk>/', question_detail, name='question-detail'), 
+
+    # Quizzes
+    path('api/quizzes/', views.QuizListCreateView.as_view(), name='quiz-list'),
+    path('api/quizzes/<int:pk>/', views.QuizDetailView.as_view(), name='quiz-detail'),
+    path('api/quizzes/<int:course_id>/create/', views.QuizCreateView.as_view(), name='quiz-create'),
+    path('api/quizzes/<int:pk>/evaluate/', views.EvaluateQuizViewSet.as_view({'post': 'evaluate'}), name='evaluate-quiz'),
+    path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
 
     # Router URLs
     path('', include(router.urls)),

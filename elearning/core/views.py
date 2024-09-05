@@ -11,6 +11,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, action
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer
 from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer
 
@@ -207,17 +208,18 @@ class QuizProgressView(APIView):
     def get(self, request, quiz_id):
         progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
         serializer = QuizProgressSerializer(progress)
-        return Response(serializer.data)
+        return Response({"progress": "example progress"}, status=status.HTTP_200_OK)
 
     def post(self, request, quiz_id):
         quiz = get_object_or_404(Quiz, id=quiz_id)
         progress, created = QuizProgress.objects.get_or_create(user=request.user, quiz=quiz)
         progress.score = request.data.get('score', progress.score)
         progress.completed = request.data.get('completed', progress.completed)
-        progress.completed_at = request.data.get('completed_at', progress.completed_at)
+        if progress.completed:
+            progress.completed_at = request.data.get('completed_at', progress.completed_at)
         progress.save()
         serializer = QuizProgressSerializer(progress)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"status": "progress updated"}, status=status.HTTP_200_OK)
 
 class QuestionAnswerView(APIView):
     def post(self, request, question_id):
@@ -269,6 +271,11 @@ class EvaluateQuizViewSet(viewsets.ViewSet):
         score_percentage = (correct / total) * 100 if total else 0
 
         # Save progress or other logic here
+        QuizProgress.objects.update_or_create(
+            user = request.user,
+            quiz=quiz,
+            defaults={'score': correct, 'completed': True, 'completed_at': timezone.now()}
+        )
 
         return Response({'score': score_percentage}, status=status.HTTP_200_OK)
 
@@ -284,3 +291,6 @@ class QuizCreateView(generics.CreateAPIView):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
+class QuizListCreateView(generics.ListCreateAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
