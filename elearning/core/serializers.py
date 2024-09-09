@@ -50,7 +50,7 @@ class CourseProgressSerializer(serializers.ModelSerializer):
 class QuizProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuizProgress
-        fields = ['user', 'quiz', 'score', 'completed', 'completed_at']
+        fields = ['user', 'quiz', 'score', 'completed', 'completed_at', 'feedback']
 
 #Question Answer Serializer
 class QuestionAnswerSerializer(serializers.ModelSerializer):

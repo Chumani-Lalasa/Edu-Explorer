@@ -82,11 +82,24 @@ class QuizManagementTests(APITestCase):
         url = reverse('evaluate-quiz', kwargs={'pk':4})  # Adjust if necessary
         data = {
             'answers': [
-                {'question_id': self.question.id, 'selected_answer': self.correct_answer.id},
+                {'question_id': self.question.id, 'answer_id': self.correct_answer.id},
                 # {'question_id': self.question.id, 'selected_answer': self.wrong_answer.id}
             ]
         }
+        self.client.force_authenticate(user=self.user)
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['score'], 1)  # Adjust based on expected result
         self.assertEqual(QuizProgress.objects.filter(quiz=self.quiz, user=self.user).count(), 1)
+
+    def test_create_progress(self):
+        url = reverse('quiz-progress', kwargs={'quiz_id': self.quiz.id})
+        data = {
+            'score': 5,
+            'completed': True,
+            'completed_at': '2024-09-05T10:00:00Z'
+        }
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(QuizProgress.objects.count(), 1)

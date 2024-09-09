@@ -93,6 +93,12 @@ class Question(models.Model):
     def __str__(self):
         return self.text
     
+# Answer
+class Answer(models.Model):
+    question = models.ForeignKey(Question, related_name='answers_list', on_delete=models.CASCADE)
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
+    
 # Model to track course progress
 class CourseProgress(models.Model):
     user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)
@@ -137,9 +143,4 @@ class Certificate(models.Model):
     def __str__(self):
         return f'Certificate for {self.user.username} - {self.course.title}'
 
-# Answer
-class Answer(models.Model):
-    question = models.ForeignKey(Question, related_name='answers_list', on_delete=models.CASCADE)
-    text = models.CharField(max_length=255)
-    is_correct = models.BooleanField(default=False)
 
