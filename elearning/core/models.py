@@ -8,6 +8,12 @@ from django.contrib.auth.models import User
 #User Model
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+    ROLE_CHOICES = [
+        ('admin', 'Admin'),
+        ('instructor', 'Instructor'),
+        ('student', 'Student'),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     bio = models.TextField(blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True)
 

@@ -2,19 +2,25 @@ import logging
 from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, viewsets, generics
+from rest_framework import status, viewsets, generics, exceptions
+from rest_framework.exceptions import NotFound
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
+# from django_ratelimit.decorators import ratelimit
 from rest_framework.decorators import api_view, action
 from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer
 from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer
-
+from rest_framework.throttling import UserRateThrottle
+from .permissions import IsAdminUser, IsInstructorUser, IsStudentUser
+# from django_ratelimit.decorators import ratelimit
 logger = logging.getLogger(__name__)
 
 # @csrf_exempt
@@ -33,18 +39,31 @@ class RegisterView(APIView):
         password = request.data.get('password')
         email = request.data.get('email')
 
+        if not user or not password or not email:
+            return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(password) < 8:
+            return Response({"error": "Password must be at least 8 characters long"}, status=status.HTTP_400_BAD_REQUEST)
+
         if User.objects.filter(username = username).exists():
             return Response({"message" : "Username already exists"}, status=status.HTTP_400_BAD_REQUEST)
         
-        user = User.objects.create_user(username=username, password=password, email=email)
-        token, _ = Token.objects.get_or_create(user = user)
-        # user.save()
-        return Response({"message" : "Registration Successful!", "token" : token.key}, status=status.HTTP_201_CREATED)
+        try:
+            user = User.objects.create_user(username=username, password=password, email=email)
+            token, _ = Token.objects.get_or_create(user = user)
+            # user.save()
+            return Response({"message" : "Registration Successful!", "token" : token.key}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.error(f"Registration error: {e}")
+            return Response({"error": "Failed to register user"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # @csrf_exempt
 @method_decorator(csrf_exempt, name='dispatch')
+# @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
+# @method_decorator(ratelimit(key='ip', rate='5/m', method='POST', block=True), name='post')
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [UserRateThrottle]
 
     def post(self, request):
         username = request.data.get('username')
@@ -73,26 +92,38 @@ class CourseCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = CourseSerializer(data = request.data)
-        if serializer.is_valid():
-            serializer.save(instructor = request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = CourseSerializer(data = request.data)
+            if serializer.is_valid():
+                serializer.save(instructor = request.user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
+            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 # Update Course View
 class CourseUpdateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def put(self, request, pk):
-        course = get_object_or_404(Course, pk=pk)
-        if course.instructor != request.user:
-            return Response({"error" : "You are not authorized to update this course."})
-        
-        serializer = CourseSerializer(course, data = request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            course = get_object_or_404(Course, pk=pk)
+            if course.instructor != request.user:
+                return Response({"error" : "You are not authorized to update this course."})
+            
+            serializer = CourseSerializer(course, data = request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except ObjectDoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Update error: {e}")
+            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # Delete Course View
 class CourseDeleteView(APIView):
@@ -104,7 +135,32 @@ class CourseDeleteView(APIView):
             return Response({"error" : "You are not authorized to delete this course."}, status=status.HTTP_403_FORBIDDEN)
         course.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-    
+
+class CourseDetailView(APIView):
+    def get(self, request, course_id):
+        course = get_object_or_404(Course.objects.only('id', 'title', 'description'), id=course_id)
+        serializer = CourseSerializer(course)
+        return Response(serializer.data) 
+
+class CourseListView(APIView):
+    def get(self, request):
+        courses = Course.objects.select_related('instructor').all()
+        serializer = CourseSerializer(courses, many=True)
+        return Response(serializer.data)
+
+class CourseModuleListView(APIView):
+    def get(self, request, course_id):
+        course = get_object_or_404(Course.objects.prefetch_related('modules'), id=course_id)
+        serializer = CourseSerializer(course)
+        return Response(serializer.data)
+
+class CourseSearchView(APIView):
+    def get(self, request):
+        search_term = request.query_params.get('search', '')
+        courses = Course.objects.filter(title_icontains=search_term).only('id', 'title', 'description')
+        serializer = CourseSerializer(courses, many=True)
+        return Response(serializer.data)
+
 # Create Module View
 class ModuleCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -190,8 +246,14 @@ class ContentDeleteView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 class CourseProgressView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def get(self, request, course_id):
-        progress = get_object_or_404(CourseProgress, user=request.user, course_id=course_id)
+        progress = get_object_or_404(
+            CourseProgress.objects.select_related('course', 'user'), 
+            user=request.user, 
+            course_id=course_id
+        )
         serializer = CourseProgressSerializer(progress)
         return Response(serializer.data)
 
@@ -203,6 +265,11 @@ class CourseProgressView(APIView):
         progress.save()
         serializer = CourseProgressSerializer(progress)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+@method_decorator(cache_page(60 * 15), name='dispatch')
+class CourseListView(generics.ListAPIView):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
 
 class QuizProgressView(APIView):
     def get(self, request, quiz_id):
@@ -232,7 +299,6 @@ class QuestionAnswerView(APIView):
         answer.save()
         serializer = QuestionAnswerSerializer(answer)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
@@ -294,3 +360,30 @@ class QuizCreateView(generics.CreateAPIView):
 class QuizListCreateView(generics.ListCreateAPIView):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
+
+class ProtectedView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response({"message": "This is a protected view accessible only by authenticated users"})
+
+
+class AdminView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        return Response({'message': 'This view is only accessible to Admin users'})
+
+class InstructorView(APIView):
+    permission_classes = [IsInstructorUser]
+
+    def get(self, request):
+        return Response({'message': 'This view is only accessible to Instructor users'})
+
+class StudentView(APIView):
+    permission_classes = [IsStudentUser]
+
+    def get(self, request):
+        return Response({'message': 'This view is only accessible to Student users'})
+
+
