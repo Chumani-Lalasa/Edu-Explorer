@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Course, Module, Content
+from .models import Course, Module, Content, Notification
 from .models import UserProfile, Question, Quiz, Lesson ,CourseProgress, QuizProgress, QuestionAnswer, Answer, ContentProgress
 
 # UserProfile Serializer
@@ -74,4 +74,11 @@ class ContentProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = ContentProgress
         fields = ['content', 'completed', 'viewed_at']
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = ['id', 'message', 'is_read', 'created_at']
+
 

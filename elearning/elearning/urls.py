@@ -81,4 +81,8 @@ urlpatterns = [
     # Content Progress
     path('api/content/<int:content_id>/complete/', views.MarkContentCompleteView.as_view(), name='content-complete'),
     path('api/content/<int:content_id>/progress/', views.ContentProgressView.as_view(), name='content-progress'),
+
+    # Notification
+    path('api/notifications/', views.NotificationListView.as_view(), name='notification-list'),
+    path('api/notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
 ]

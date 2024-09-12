@@ -159,3 +159,12 @@ class ContentProgress(models.Model):
     class Meta:
         unique_together = ('user', 'content')
 
+# Notification
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username}: {self.message}"
