@@ -16,11 +16,11 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer, ContentProgress
-from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer, ContentProgressSerializer
+from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer, ContentProgress, Notification
+from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer, ContentProgressSerializer, NotificationSerializer
 from rest_framework.throttling import UserRateThrottle
 from .permissions import IsAdminUser, IsInstructorUser, IsStudentUser
-# from django_ratelimit.decorators import ratelimit
+from .utils import check_incomplete_content, check_incomplete_quizzes
 logger = logging.getLogger(__name__)
 
 # @csrf_exempt
@@ -195,7 +195,7 @@ class ModuleUpdateView(APIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+
 # Delete Module View
 class ModuleDeleteView(APIView):
     permission_classes = [IsAuthenticated]
@@ -255,8 +255,9 @@ class CourseProgressView(APIView):
             user=request.user, 
             course_id=course_id
         )
+        incomplete_content = check_incomplete_content(request.user, course_id)
         serializer = CourseProgressSerializer(progress)
-        return Response(serializer.data)
+        return Response({"progress":serializer.data, "incomplete_content": incomplete_content})
 
     def post(self, request, course_id):
         course = get_object_or_404(Course, id=course_id)
@@ -283,8 +284,9 @@ class QuizProgressView(APIView):
     
     def get(self, request, quiz_id):
         progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
+        incomplete_quizzes = check_incomplete_quizzes(request.user)
         serializer = QuizProgressSerializer(progress)
-        return Response({"progress": "example progress"}, status=status.HTTP_200_OK)
+        return Response({"progress": "example progress", "incomplete_quizzes": incomplete_quizzes}, status=status.HTTP_200_OK)
 
     def post(self, request, quiz_id):
         quiz = get_object_or_404(Quiz, id=quiz_id)
@@ -422,4 +424,20 @@ class ContentProgressView(APIView):
             return Response({"message" : "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = ContentProgressSerializer(progress)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class NotificationListView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user)
+
+class NotificationReadView(generics.UpdateAPIView):
+    serializer_class = NotificationSerializer
+
+    def get_object(self):
+        return Notification.objects.get(pk=self.kwargs['pk'])
+
+
+
+
 

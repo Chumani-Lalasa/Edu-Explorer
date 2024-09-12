@@ -91,3 +91,50 @@ class QuestionAnswerTests(APITestCase):
         data = {'selected_answer': '4'}
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+class IncompleteContentTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.course = Course.objects.create(title='Test Course', description='Course Description', instructor=self.user)
+        self.module = Module.objects.create(course=self.course, title='Test Module', description='Module Description', order=1)
+        self.content_1 = Content.objects.create(module=self.module, content_type='video', text='Content 1', order=1)
+        self.content_2 = Content.objects.create(module=self.module, content_type='video', text='Content 2', order=2)
+        self.client.login(username='testuser', password='password')
+
+    def test_incomplete_content(self):
+        # Simulate that only content_1 is completed
+        ContentProgress.objects.create(user=self.user, content=self.content_1, viewed=True)
+        
+        url = reverse('course-progress', kwargs={'course_id': self.course.id})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('incomplete_content', response.data)
+        incomplete_content_ids = [content['id'] for content in response.data['incomplete_content']]
+        self.assertIn(self.content_2.id, incomplete_content_ids)  # content_2 should be incomplete
+        self.assertNotIn(self.content_1.id, incomplete_content_ids)  # content_1 should not be incomplete
+
+class IncompleteQuizTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.course = Course.objects.create(title='Test Course', description='Course Description', instructor=self.user)
+        self.quiz_1 = Quiz.objects.create(title='Quiz 1', description='First quiz', course=self.course)
+        self.quiz_2 = Quiz.objects.create(title='Quiz 2', description='Second quiz', course=self.course)
+        self.client.login(username='testuser', password='password')
+
+    def test_incomplete_quizzes(self):
+        # Simulate that quiz_1 is completed
+        QuizProgress.objects.create(user=self.user, quiz=self.quiz_1, score=100, completed=True)
+        
+        url = reverse('course-progress', kwargs={'course_id': self.course.id})
+        response = self.client.get(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('incomplete_quizzes', response.data)
+        incomplete_quiz_ids = [quiz['id'] for quiz in response.data['incomplete_quizzes']]
+        self.assertIn(self.quiz_2.id, incomplete_quiz_ids)  # quiz_2 should be incomplete
+        self.assertNotIn(self.quiz_1.id, incomplete_quiz_ids)  # quiz_1 should not be incomplete
+
+
+
+
