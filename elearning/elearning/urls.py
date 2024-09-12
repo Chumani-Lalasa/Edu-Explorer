@@ -24,6 +24,7 @@ router = DefaultRouter()
 router.register(r'courses', views.CourseViewSet, basename='course')
 router.register(r'quizzes', views.EvaluateQuizViewSet, basename='quiz')
 router.register(r'questions', views.QuestionViewSet, basename='question')
+# router.register(r'contents', views.ContentViewSet, basename='content')
 # router.register(r'quiz-progress', views.QuizProgressView)
 
 question_list = views.QuestionViewSet.as_view({
@@ -56,7 +57,7 @@ urlpatterns = [
 
     # Progress tracking
     path('api/progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
-    path('progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
+    path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
     path('progress/question/<int:question_id>/answer/', views.QuestionAnswerView.as_view(), name='question-answer'),
 
     # Questions
@@ -76,4 +77,8 @@ urlpatterns = [
     # JWT Token endpoints
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # Content Progress
+    path('api/content/<int:content_id>/complete/', views.MarkContentCompleteView.as_view(), name='content-complete'),
+    path('api/content/<int:content_id>/progress/', views.ContentProgressView.as_view(), name='content-progress'),
 ]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Course, Module, Content
-from .models import UserProfile, Question, Quiz, Lesson ,CourseProgress, QuizProgress, QuestionAnswer, Answer
+from .models import UserProfile, Question, Quiz, Lesson ,CourseProgress, QuizProgress, QuestionAnswer, Answer, ContentProgress
 
 # UserProfile Serializer
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -70,4 +70,8 @@ class AnswerSerializer(serializers.ModelSerializer):
         model = Answer
         fields = '__all__'
 
+class ContentProgressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentProgress
+        fields = ['content', 'completed', 'viewed_at']
 

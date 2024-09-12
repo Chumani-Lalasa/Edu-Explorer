@@ -16,8 +16,8 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer
-from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer
+from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer, ContentProgress
+from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer, ContentProgressSerializer
 from rest_framework.throttling import UserRateThrottle
 from .permissions import IsAdminUser, IsInstructorUser, IsStudentUser
 # from django_ratelimit.decorators import ratelimit
@@ -194,6 +194,7 @@ class ModuleUpdateView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     
 # Delete Module View
 class ModuleDeleteView(APIView):
@@ -272,6 +273,14 @@ class CourseListView(generics.ListAPIView):
     serializer_class = CourseSerializer
 
 class QuizProgressView(APIView):
+    queryset = QuizProgress.objects.all()
+    serializer_class = QuizProgressSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+    
     def get(self, request, quiz_id):
         progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
         serializer = QuizProgressSerializer(progress)
@@ -313,6 +322,10 @@ class AnswerViewSet(viewsets.ModelViewSet):
     serializer_class = AnswerSerializer
 
 class EvaluateQuizViewSet(viewsets.ViewSet):
+    def get_object(self):
+        quiz_id = self.kwargs.get('pk')
+        return Quiz.objects.get(pk=quiz_id)
+    
     @action(detail=True, methods=['post'])
     def evaluate(self, request, pk=None):
         quiz = self.get_object()
@@ -386,4 +399,27 @@ class StudentView(APIView):
     def get(self, request):
         return Response({'message': 'This view is only accessible to Student users'})
 
+class MarkContentCompleteView(APIView):
+    def post(self, request, content_id):
+        content = get_object_or_404(Content, id=content_id)
+        user = request.user
+
+        progress, created = ContentProgress.objects.get_or_create(user = user, content = content)
+
+        progress.completed = True
+        progress.save()
+
+        return Response({"message": "Content market as completed"}, status=status.HTTP_200_OK)
+
+class ContentProgressView(APIView):
+    def get(self, request, content_id):
+        user = request.user
+        content = get_object_or_404(Content, id = content_id)
+
+        try:
+            progress = ContentProgress.objects.get(user = user, content = content)
+        except ContentProgress.DoesNotExist:
+            return Response({"message" : "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ContentProgressSerializer(progress)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 

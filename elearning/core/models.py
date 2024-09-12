@@ -149,4 +149,13 @@ class Certificate(models.Model):
     def __str__(self):
         return f'Certificate for {self.user.username} - {self.course.title}'
 
+# Content Progress
+class ContentProgress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    content = models.ForeignKey(Content, related_name='progress', on_delete=models.CASCADE)
+    completed = models.BooleanField(default=False)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'content')
 
