@@ -69,7 +69,7 @@ urlpatterns = [
     path('api/quizzes/<int:pk>/', views.QuizDetailView.as_view(), name='quiz-detail'),
     path('api/quizzes/<int:course_id>/create/', views.QuizCreateView.as_view(), name='quiz-create'),
     path('api/quizzes/<int:pk>/evaluate/', views.EvaluateQuizViewSet.as_view({'post': 'evaluate'}), name='evaluate-quiz'),
-    path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
+    # path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
 
     # Router URLs
     path('', include(router.urls)),
@@ -84,5 +84,6 @@ urlpatterns = [
 
     # Notification
     path('api/notifications/', views.NotificationListView.as_view(), name='notification-list'),
+    path('api/notifications/create/', views.NotificationCreateView.as_view(), name='notification-create'), 
     path('api/notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
 ]

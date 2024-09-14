@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import UserProfile, Course, Module, Content, Lesson, Quiz, Question, CourseProgress, QuizProgress, QuestionAnswer, Certificate, Answer
+from .models import UserProfile, Course, Module, Content, Lesson, Quiz, Question, CourseProgress, QuizProgress, QuestionAnswer, Certificate, Answer, Notification
 
 admin.site.register(UserProfile)
 admin.site.register(Course)
@@ -14,4 +14,5 @@ admin.site.register(QuizProgress)
 admin.site.register(QuestionAnswer)
 admin.site.register(Certificate)
 admin.site.register(Answer)
+admin.site.register(Notification)
 
