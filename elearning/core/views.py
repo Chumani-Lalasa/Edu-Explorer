@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, exceptions
 from rest_framework.exceptions import NotFound
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
@@ -425,18 +425,36 @@ class ContentProgressView(APIView):
         serializer = ContentProgressSerializer(progress)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class NotificationCreateView(generics.ListCreateAPIView):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user = self.request.user)
+
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return Notification.objects.filter(user=self.request.user)
 
 class NotificationReadView(generics.UpdateAPIView):
     serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
-        return Notification.objects.get(pk=self.kwargs['pk'])
+        notification = Notification.objects.filter(pk = self.kwargs['pk'], user = self.request.user).first()
+        if notification:
+            return notification
+        raise Http404("Notification not found")
 
+    def update(self, request, *args, **kwargs):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
 
 
 

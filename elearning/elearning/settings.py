@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'debug_toolbar',
     'rest_framework_simplejwt',
+    'django_extensions'
 ]
 
 
