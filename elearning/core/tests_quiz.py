@@ -69,6 +69,8 @@ class QuizManagementTests(APITestCase):
             'description': 'Updated description'
         }
         response = self.client.put(self.quiz_detail_url, data, format='json')
+        print("Response Status Code:", response.status_code)
+        print("Response Content:", response.content)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.quiz.refresh_from_db()
         self.assertEqual(self.quiz.title, 'Updated Quiz Title')
@@ -85,9 +87,10 @@ class QuizManagementTests(APITestCase):
             ]
         }
         response = self.client.post(self.evaluate_quiz_url, data, format='json')
+        print("Response Data:", response.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn('score', response.data)
-        self.assertEqual(response.data['score'], 1)
+        self.assertEqual(response.data['score'], 1.0)
         self.assertEqual(QuizProgress.objects.filter(quiz=self.quiz, user=self.user).count(), 1)
 
     def test_create_progress(self):
@@ -105,3 +108,8 @@ class QuizManagementTests(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['quiz'], self.quiz.id)
+
+    def test_quiz_progress_unauthenticated(self):
+        url = reverse('quiz-progress', kwargs={'quiz_id': self.quiz.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

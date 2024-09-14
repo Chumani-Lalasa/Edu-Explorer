@@ -2,8 +2,9 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 from rest_framework import status
 from django.contrib.auth.models import User
-from .models import Course, Quiz, CourseProgress, QuizProgress, Question, QuestionAnswer, Module, Content, ContentProgress
+from .models import Course, Quiz, CourseProgress, QuizProgress, Question, QuestionAnswer, Module, Content, ContentProgress, Notification
 from django.urls import reverse
+from utils import check_incomplete_quizzes
 
 class CourseProgressTests(APITestCase):
     def setUp(self):
@@ -40,35 +41,6 @@ class CourseProgressTests(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(ContentProgress.objects.filter(user=self.user, content=self.content, viewed=True).exists())
-
-class QuizProgressTests(APITestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-        self.course = Course.objects.create(title='Test Course', description='Course Description', instructor=self.user)
-        self.quiz = Quiz.objects.create(title='Test Quiz', description='Quiz Description', course=self.course)
-        self.client.login(username='testuser', password='password')
-        self.progress = QuizProgress.objects.create(user=self.user, quiz=self.quiz)
-
-    def test_get_quiz_progress(self):
-        url = reverse('quiz-progress', kwargs={'quiz_id': self.quiz.id})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['quiz'], self.quiz.id)
-        self.assertIn('score', response.data)
-
-    def test_post_quiz_progress(self):
-        url = reverse('quiz-progress', kwargs={'quiz_id': self.quiz.id})
-        data = {'score': 80, 'completed': True, 'completed_at': '2024-08-22T12:00:00Z'}
-        response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['score'], 80)
-        self.assertTrue(QuizProgress.objects.filter(user=self.user, quiz=self.quiz, score=80).exists())
-
-    def test_quiz_progress_unauthenticated(self):
-        self.client.logout()
-        url = reverse('quiz-progress', kwargs={'quiz_id': self.quiz.id})
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
 class QuestionAnswerTests(APITestCase):
     def setUp(self):
@@ -116,25 +88,29 @@ class IncompleteContentTests(APITestCase):
 
 class IncompleteQuizTests(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='testuser', password='password')
-        self.course = Course.objects.create(title='Test Course', description='Course Description', instructor=self.user)
-        self.quiz_1 = Quiz.objects.create(title='Quiz 1', description='First quiz', course=self.course)
-        self.quiz_2 = Quiz.objects.create(title='Quiz 2', description='Second quiz', course=self.course)
-        self.client.login(username='testuser', password='password')
+        self.user = User.objects.create_user(username='testuser', password='testpassword')
+        self.course = Course.objects.create(
+            name='Test Course',
+            title='Test Course Title',
+            description='Test Course Description',
+            instructor=self.user
+        )
+        self.quiz = Quiz.objects.create(
+            title='Test Quiz',
+            description='A test quiz',
+            course=self.course
+        )
 
     def test_incomplete_quizzes(self):
-        # Simulate that quiz_1 is completed
-        QuizProgress.objects.create(user=self.user, quiz=self.quiz_1, score=100, completed=True)
+        # Call the utility function to check for incomplete quizzes
+        check_incomplete_quizzes(self.user)
         
-        url = reverse('course-progress', kwargs={'course_id': self.course.id})
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('incomplete_quizzes', response.data)
-        incomplete_quiz_ids = [quiz['id'] for quiz in response.data['incomplete_quizzes']]
-        self.assertIn(self.quiz_2.id, incomplete_quiz_ids)  # quiz_2 should be incomplete
-        self.assertNotIn(self.quiz_1.id, incomplete_quiz_ids)  # quiz_1 should not be incomplete
-
+        # Check if the notification for the incomplete quiz was created
+        notification = Notification.objects.filter(
+            user=self.user, message=f"You have not completed the quiz: {self.quiz.title}"
+        ).first()
+        self.assertIsNotNone(notification)
+        self.assertEqual(notification.message, f"You have not completed the quiz: {self.quiz.title}")
 
 
 

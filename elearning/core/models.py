@@ -81,7 +81,7 @@ class Lesson(models.Model):
     
 # Quiz Model
 class Quiz(models.Model):
-    course = models.ForeignKey(Course, related_name='quizzes', on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -89,22 +89,25 @@ class Quiz(models.Model):
     def __str__(self):
         return self.title
     
+# Answer
+class Answer(models.Model):
+    question = models.ForeignKey('Question', related_name='answers_list', on_delete=models.CASCADE)
+    text = models.CharField(max_length=255)
+    is_correct = models.BooleanField(default=False)
+
+    def __str__(self):
+        return self.text
+     
 # Question Model
 class Question(models.Model):
-    quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     text = models.CharField(max_length=500)
-    correct_answer = models.CharField(max_length=255)
+    correct_answer = models.ForeignKey(Answer, related_name='correct_for_question', on_delete=models.CASCADE)
     difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
 
     def __str__(self):
         return self.text
-    
-# Answer
-class Answer(models.Model):
-    question = models.ForeignKey(Question, related_name='answers_list', on_delete=models.CASCADE)
-    text = models.CharField(max_length=255)
-    is_correct = models.BooleanField(default=False)
-    
+      
 # Model to track course progress
 class CourseProgress(models.Model):
     user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)

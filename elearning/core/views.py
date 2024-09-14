@@ -176,10 +176,10 @@ class ModuleCreateView(APIView):
         
         serializer = ModuleSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(course = course)
+            serializer.save(course=course)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+        logger.error(f'Serializer errors: {serializer.errors}')  # Log errors for debugging
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
 # Update Module View
 class ModuleUpdateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -189,12 +189,11 @@ class ModuleUpdateView(APIView):
         if module.course.instructor != request.user:
             return Response({"error" : "You are not authorized to update this module."}, status=status.HTTP_403_FORBIDDEN)
         
-        serializer = ModuleSerializer(module, data=request.data)
+        serializer = ModuleSerializer(module, data=request.data, partial = True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 # Delete Module View
 class ModuleDeleteView(APIView):
@@ -229,7 +228,7 @@ class ContentUpdateView(APIView):
         content = get_object_or_404(Content, pk=pk)
         if content.module.course.instructor != request.user:
             return Response({"error" : "You are not authorized to update this content."}, status=status.HTTP_403_FORBIDDEN)
-        serializer = ContentSerializer(content, data=request.data)
+        serializer = ContentSerializer(content, data=request.data, partial = True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -245,6 +244,33 @@ class ContentDeleteView(APIView):
             return Response({"error" : "You are not authorized to delete this content."}, status=status.HTTP_403_FORBIDDEN)
         content.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class ContentProgressView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, content_id):
+        user = request.user
+        content = get_object_or_404(Content, id = content_id)
+
+        try:
+            progress = ContentProgress.objects.get(user = user, content = content)
+        except ContentProgress.DoesNotExist:
+            return Response({"message" : "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = ContentProgressSerializer(progress)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def post(self, request, content_id):
+        content = get_object_or_404(Content, id=content_id)
+        if content.module.course.instructor != request.user:
+            return Response({"error": "You are not authorized to mark content as viewed."}, status=status.HTTP_403_FORBIDDEN)
+        viewed = request.data.get('viewed', False)
+        ContentProgress.objects.update_or_create(
+            user=request.user,
+            content=content,
+            defaults={'viewed': viewed}
+        )
+        return Response({"status": "Content progress updated"}, status=status.HTTP_200_OK)
+
 
 class CourseProgressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -273,9 +299,35 @@ class CourseListView(generics.ListAPIView):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
+
+class QuestionAnswerView(APIView):
+    def post(self, request, question_id):
+        question = get_object_or_404(Question, id=question_id)
+        selected_answer = request.data.get('selected_answer')
+        is_correct = selected_answer == question.correct_answer
+        answer, created = QuestionAnswer.objects.get_or_create(user=request.user, question=question)
+        answer.selected_answer = selected_answer
+        answer.is_correct = is_correct
+        answer.save()
+        serializer = QuestionAnswerSerializer(answer)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+class QuestionViewSet(viewsets.ModelViewSet):
+    queryset = Question.objects.all()
+    serializer_class = QuestionSerializer
+
+class AnswerViewSet(viewsets.ModelViewSet):
+    queryset = Answer.objects.all()
+    serializer_class = AnswerSerializer
+
+class CourseViewSet(viewsets.ModelViewSet):
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+
 class QuizProgressView(APIView):
     queryset = QuizProgress.objects.all()
     serializer_class = QuizProgressSerializer
+    permission_classes = [IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -299,29 +351,21 @@ class QuizProgressView(APIView):
         serializer = QuizProgressSerializer(progress)
         return Response({"status": "progress updated"}, status=status.HTTP_200_OK)
 
-class QuestionAnswerView(APIView):
-    def post(self, request, question_id):
-        question = get_object_or_404(Question, id=question_id)
-        selected_answer = request.data.get('selected_answer')
-        is_correct = selected_answer == question.correct_answer
-        answer, created = QuestionAnswer.objects.get_or_create(user=request.user, question=question)
-        answer.selected_answer = selected_answer
-        answer.is_correct = is_correct
-        answer.save()
-        serializer = QuestionAnswerSerializer(answer)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
-class QuestionViewSet(viewsets.ModelViewSet):
-    queryset = Question.objects.all()
-    serializer_class = QuestionSerializer
+class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
 
-class AnswerViewSet(viewsets.ModelViewSet):
-    queryset = Answer.objects.all()
-    serializer_class = AnswerSerializer
+class QuizCreateView(generics.CreateAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
+
+class QuizListCreateView(generics.ListCreateAPIView):
+    queryset = Quiz.objects.all()
+    serializer_class = QuizSerializer
 
 class EvaluateQuizViewSet(viewsets.ViewSet):
     def get_object(self):
@@ -339,6 +383,8 @@ class EvaluateQuizViewSet(viewsets.ViewSet):
         correct = 0
         total = quiz.questions.count()
 
+        print("Total Question:", total)
+
         for answer in answers:
             question_id = answer.get('question_id')
             selected_answer_id = answer.get('answer_id')
@@ -346,42 +392,29 @@ class EvaluateQuizViewSet(viewsets.ViewSet):
             question = get_object_or_404(Question, id=question_id)
             answer_obj = get_object_or_404(Answer, id=selected_answer_id)
 
+            print("Question ID:", question_id, "Selected Answer ID:", selected_answer_id)  # Debug
+            print("Correct Answer ID:", question.correct_answer) 
+
             if question.correct_answer == answer_obj.id:
                 correct += 1
 
-        score_percentage = (correct / total) * 100 if total else 0
+        print("Correct Answers:", correct)
+        score_fraction = (correct / total) if total else 0
 
         # Save progress or other logic here
         QuizProgress.objects.update_or_create(
             user = request.user,
             quiz=quiz,
-            defaults={'score': correct, 'completed': True, 'completed_at': timezone.now()}
+            defaults={'score': score_fraction, 'completed': True, 'completed_at': timezone.now()}
         )
 
-        return Response({'score': score_percentage}, status=status.HTTP_200_OK)
-
-class CourseViewSet(viewsets.ModelViewSet):
-    queryset = Course.objects.all()
-    serializer_class = CourseSerializer
-
-class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
-
-class QuizCreateView(generics.CreateAPIView):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
-
-class QuizListCreateView(generics.ListCreateAPIView):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
+        return Response({'score': score_fraction}, status=status.HTTP_200_OK)
 
 class ProtectedView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return Response({"message": "This is a protected view accessible only by authenticated users"})
-
 
 class AdminView(APIView):
     permission_classes = [IsAdminUser]
@@ -412,18 +445,6 @@ class MarkContentCompleteView(APIView):
         progress.save()
 
         return Response({"message": "Content market as completed"}, status=status.HTTP_200_OK)
-
-class ContentProgressView(APIView):
-    def get(self, request, content_id):
-        user = request.user
-        content = get_object_or_404(Content, id = content_id)
-
-        try:
-            progress = ContentProgress.objects.get(user = user, content = content)
-        except ContentProgress.DoesNotExist:
-            return Response({"message" : "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = ContentProgressSerializer(progress)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class NotificationCreateView(generics.ListCreateAPIView):
     queryset = Notification.objects.all()

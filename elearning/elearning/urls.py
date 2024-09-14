@@ -59,6 +59,7 @@ urlpatterns = [
     path('api/progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
     path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
     path('progress/question/<int:question_id>/answer/', views.QuestionAnswerView.as_view(), name='question-answer'),
+    path('api/content/<int:content_id>/progress/', views.ContentProgressView.as_view(), name='content-progress'),
 
     # Questions
     path('api/questions/', question_list, name='question-list'),

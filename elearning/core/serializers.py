@@ -19,7 +19,8 @@ class CourseSerializer(serializers.ModelSerializer):
 class ModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
-        fields = ['course', 'title', 'description', 'order']
+        fields = ['id', 'course', 'title', 'description', 'order']
+        read_only_fields = ['course']
 
 # Content Serializer
 class ContentSerializer(serializers.ModelSerializer):
@@ -34,17 +35,17 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = '__all__'
 
-# Quiz Serializer
-class QuizSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Quiz
-        fields = '__all__'
-
 # Course Progress Serializer
 class CourseProgressSerializer(serializers.ModelSerializer):
     class Meta:
         model = CourseProgress
         fields = ['user', 'course', 'completed_modules', 'completion_status', 'started_at', 'completed_at']
+
+# Quiz Serializer
+class QuizSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = '__all__'
 
 # Quiz Progress Serializer
 class QuizProgressSerializer(serializers.ModelSerializer):
