@@ -74,7 +74,6 @@ class IncompleteContentTests(APITestCase):
         self.client.login(username='testuser', password='password')
 
     def test_incomplete_content(self):
-        # Simulate that only content_1 is completed
         ContentProgress.objects.create(user=self.user, content=self.content_1, viewed=True)
         
         url = reverse('course-progress', kwargs={'course_id': self.course.id})
@@ -102,15 +101,10 @@ class IncompleteQuizTests(APITestCase):
         )
 
     def test_incomplete_quizzes(self):
-        # Call the utility function to check for incomplete quizzes
         check_incomplete_quizzes(self.user)
         
-        # Check if the notification for the incomplete quiz was created
         notification = Notification.objects.filter(
             user=self.user, message=f"You have not completed the quiz: {self.quiz.title}"
         ).first()
         self.assertIsNotNone(notification)
         self.assertEqual(notification.message, f"You have not completed the quiz: {self.quiz.title}")
-
-
-

@@ -102,32 +102,28 @@ class Answer(models.Model):
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     text = models.CharField(max_length=500)
-    correct_answer = models.ForeignKey(Answer, related_name='correct_for_question', on_delete=models.CASCADE)
+    correct_answer = models.ForeignKey(Answer, related_name='correct_for_question', on_delete=models.CASCADE, null=True, blank=True)
     difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
 
     def __str__(self):
         return self.text
-      
-# Model to track course progress
-class CourseProgress(models.Model):
-    user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, related_name='progress', on_delete=models.CASCADE)
-    completed_modules = models.ManyToManyField('Module', blank=True)
-    completion_status = models.BooleanField(default=False)
-    started_at = models.DateTimeField(auto_now_add=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
 
-    def __str__(self):
-        return f'{self.user.username} - {self.course.title}'
+class QuizProgressManager(models.Manager):
+    def get_incomplete_quizzes(self, user):
+        return Quiz.objects.filter(progress__user=user, progress__completed=False).distinct()
 
-# Model to track quiz progress
+# Model to track quiz progress      
 class QuizProgress(models.Model):
-    user = models.ForeignKey(User, related_name='quiz_progress', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, related_name='progress', on_delete=models.CASCADE)
     score = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     feedback = models.TextField(blank=True)
+
+    @classmethod
+    def get_incomplete_quizzes(cls, user):
+        return Quiz.objects.filter(progress__user=user, progress__completed=False).distinct()
 
     def __str__(self):
         return f'{self.user.username} - {self.quiz.title}'
@@ -141,6 +137,18 @@ class QuestionAnswer(models.Model):
 
     def __str__(self):
         return f'{self.user.username} - {self.question.text}'
+
+# Model to track course progress
+class CourseProgress(models.Model):
+    user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, related_name='progress', on_delete=models.CASCADE)
+    completed_modules = models.ManyToManyField('Module', blank=True)
+    completion_status = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.user.username} - {self.course.title}'
 
 # Certificates Model
 class Certificate(models.Model):

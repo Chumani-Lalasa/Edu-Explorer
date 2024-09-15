@@ -338,18 +338,24 @@ class QuizProgressView(APIView):
         progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
         incomplete_quizzes = check_incomplete_quizzes(request.user)
         serializer = QuizProgressSerializer(progress)
-        return Response({"progress": "example progress", "incomplete_quizzes": incomplete_quizzes}, status=status.HTTP_200_OK)
+        return Response({"progress": serializer.data, "incomplete_quizzes": incomplete_quizzes}, status=status.HTTP_200_OK)
 
     def post(self, request, quiz_id):
         quiz = get_object_or_404(Quiz, id=quiz_id)
         progress, created = QuizProgress.objects.get_or_create(user=request.user, quiz=quiz)
+        
+        # update the progress details
         progress.score = request.data.get('score', progress.score)
         progress.completed = request.data.get('completed', progress.completed)
         if progress.completed:
             progress.completed_at = request.data.get('completed_at', progress.completed_at)
         progress.save()
         serializer = QuizProgressSerializer(progress)
-        return Response({"status": "progress updated"}, status=status.HTTP_200_OK)
+
+        if created:
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
