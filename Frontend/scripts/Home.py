@@ -78,6 +78,7 @@
 #     app = EduExplorerApp(root)
 #     root.mainloop()
 import tkinter as tk
+from tkinter import ttk
 
 class HomePage:
     def __init__(self, parent_frame):
@@ -86,12 +87,86 @@ class HomePage:
         self.create_widgets()
 
     def create_widgets(self):
-        label = tk.Label(self.frame, text="Welcome to Edu Explorer", font=("Helvetica", 24, "bold"), bg="#f0f0f0")
-        label.pack(pady=20)
+        # Navigation bar at the top
+        nav_frame = tk.Frame(self.frame, bg="#004080", height=50)
+        nav_frame.pack(fill=tk.X)
 
-        description = tk.Label(self.frame, text=(
-            "Edu Explorer is your one-stop solution for all educational needs.\n"
-            "Explore our resources, tutorials, and quizzes to enhance your learning experience."
-        ), font=("Helvetica", 12), bg="#f0f0f0")
-        description.pack(pady=10)
+        # Navigation buttons
+        courses_btn = tk.Button(nav_frame, text="Courses", font=("Helvetica", 14, "bold"), bg="#0059b3", fg="white", command=self.show_courses)
+        courses_btn.pack(side=tk.LEFT, padx=10, pady=10)
+
+        lessons_btn = tk.Button(nav_frame, text="Lessons", font=("Helvetica", 14, "bold"), bg="#0059b3", fg="white", command=self.show_lessons)
+        lessons_btn.pack(side=tk.LEFT, padx=10, pady=10)
+
+        quizzes_btn = tk.Button(nav_frame, text="Quizzes", font=("Helvetica", 14, "bold"), bg="#0059b3", fg="white", command=self.show_quizzes)
+        quizzes_btn.pack(side=tk.LEFT, padx=10, pady=10)
+
+        # Content area
+        self.content_frame = tk.Frame(self.frame, bg="#f0f0f0")
+        self.content_frame.pack(fill=tk.BOTH, expand=True, pady=20)
+
+        # Show Courses by default
+        self.show_courses()
+
+    def clear_content(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
+    def show_courses(self):
+        self.clear_content()
+        title = tk.Label(self.content_frame, text="Courses", font=("Helvetica", 18, "bold"), bg="#f0f0f0")
+        title.pack(pady=10)
+
+        # Display courses in card-like layout
+        self.create_card("Python for Beginners", "A complete guide to Python programming.")
+        self.create_card("Advanced Java", "Dive deeper into Java with this advanced course.")
+        self.create_card("Web Development", "Learn to build websites from scratch.")
+
+    def show_lessons(self):
+        self.clear_content()
+        title = tk.Label(self.content_frame, text="Lessons", font=("Helvetica", 18, "bold"), bg="#f0f0f0")
+        title.pack(pady=10)
+
+        # Display lessons in card-like layout
+        self.create_card("Python Functions", "Understand how functions work in Python.")
+        self.create_card("Java Inheritance", "Learn about object-oriented programming in Java.")
+        self.create_card("HTML & CSS Basics", "Basics of web development using HTML and CSS.")
+
+    def show_quizzes(self):
+        self.clear_content()
+        title = tk.Label(self.content_frame, text="Quizzes", font=("Helvetica", 18, "bold"), bg="#f0f0f0")
+        title.pack(pady=10)
+
+        # Display quizzes in card-like layout
+        self.create_card("Python Quiz", "Test your knowledge of Python programming.")
+        self.create_card("Java Basics Quiz", "Quiz on the basic concepts of Java.")
+        self.create_card("HTML/CSS Quiz", "Test your web development skills.")
+
+    def create_card(self, title, description):
+        # Create a card-like frame
+        card_frame = tk.Frame(self.content_frame, bg="white", bd=2, relief=tk.RIDGE)
+        card_frame.pack(pady=10, padx=20, fill=tk.X)
+
+        # Course/Lesson/Quiz Title
+        title_label = tk.Label(card_frame, text=title, font=("Helvetica", 16, "bold"), bg="white")
+        title_label.pack(anchor="w", pady=5, padx=10)
+
+        # Description
+        desc_label = tk.Label(card_frame, text=description, font=("Helvetica", 12), bg="white")
+        desc_label.pack(anchor="w", pady=5, padx=10)
+
+        # Enroll or View Details button
+        action_button = tk.Button(card_frame, text="View Details", font=("Helvetica", 12), bg="#004080", fg="white")
+        action_button.pack(side=tk.RIGHT, padx=10, pady=10)
+
+
+# Root window
+if __name__ == "__main__":
+    root = tk.Tk()
+    root.geometry("800x600")
+    root.title("Edu Explorer")
+    app = HomePage(root)
+    root.mainloop()
+
+
 
