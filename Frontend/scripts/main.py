@@ -1,6 +1,6 @@
 import tkinter as tk
 from Home import HomePage
-from About import AboutPage
+from about import AboutPage
 from Contact import ContactPage
 
 class EduExplorerApp:
