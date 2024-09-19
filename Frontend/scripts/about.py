@@ -2,7 +2,6 @@
 
 # # Function to navigate to different routes
 # def navigate_to(route):
-#     # This would be where the logic for changing frames or opening new windows goes
 #     print(f"Navigating to {route}")
 
 # # Create the main window
@@ -46,33 +45,14 @@
 # about_label = tk.Label(content_frame, text="About Edu Explorer", font=("Helvetica", 24, "bold"), bg="#f0f0f0")
 # about_label.pack(pady=20)
 
-# # Use separate labels for each paragraph to control spacing and layout more precisely
-# about_text_1 = tk.Label(content_frame, text=(
+# about_text = tk.Label(content_frame, text=(
 #     "Edu Explorer is a comprehensive platform designed to facilitate and enhance the learning experience. "
 #     "Our goal is to provide users with access to high-quality educational resources, tutorials, and quizzes, "
 #     "all in one place. Whether you are a student looking to improve your knowledge or an educator seeking to "
-#     "share your expertise, Edu Explorer offers a range of tools and features to support your educational journey."
+#     "share your expertise, Edu Explorer offers a range of tools and features to support your educational journey. "
+#     "Explore our platform to discover a variety of learning materials and engage with a community of learners and educators."
 # ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-# about_text_1.pack(pady=15)  # Increased padding here
-
-# about_text_2 = tk.Label(content_frame, text=(
-#     "At Edu Explorer, we believe that education should be engaging, accessible, and inclusive. Whether you're preparing "
-#     "for an upcoming exam, exploring new subjects, or improving existing skills, our platform offers a variety of courses, "
-#     "interactive quizzes, and educational tutorials tailored to meet individual learning needs."
-# ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-# about_text_2.pack(pady=15)  # Increased padding here
-
-# about_text_3 = tk.Label(content_frame, text=(
-#     "For educators, we provide a suite of tools designed to enhance teaching efficiency, including options for creating "
-#     "custom quizzes, tracking student progress, and sharing expertise with a global audience. Our goal is to foster a collaborative "
-#     "environment where students and educators alike can share knowledge, improve skills, and grow together as part of a vibrant learning community."
-# ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-# about_text_3.pack(pady=15)  # Increased padding here
-
-# about_text_4 = tk.Label(content_frame, text=(
-#     "Explore Edu Explorer today and become part of a community committed to making learning an exciting and rewarding journey."
-# ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-# about_text_4.pack(pady=15)  # Increased padding here
+# about_text.pack(pady=10)
 
 # # Footer frame (similar to the header)
 # footer_frame = tk.Frame(root, bg="#007acc", bd=2, relief=tk.RAISED)
@@ -88,70 +68,25 @@
 #                            font=("Helvetica", 10), fg="white", bg="#007acc")
 # additional_info.pack(side=tk.RIGHT, padx=20, pady=10)
 
-# # Run the application with a try-except block for error handling
-# try:
-#     root.mainloop()
-# except Exception as e:
-#     print(f"An error occurred: {e}")
-# About.py
+# # Run the application
+# root.mainloop()
 import tkinter as tk
 
 class AboutPage:
-    def __init__(self, parent):
-        self.parent = parent
-        self.create_about_page()
+    def __init__(self, parent_frame):
+        self.frame = tk.Frame(parent_frame, bg="#f0f0f0")
+        self.frame.pack(fill=tk.BOTH, expand=True)
+        self.create_widgets()
 
-    def create_about_page(self):
-        # Clear previous content (if any)
-        for widget in self.parent.winfo_children():
-            widget.destroy()
+    def create_widgets(self):
+        about_label = tk.Label(self.frame, text="About Edu Explorer", font=("Helvetica", 24, "bold"), bg="#f0f0f0")
+        about_label.pack(pady=20)
 
-        # About page title
-        about_title = tk.Label(self.parent, text="About Edu Explorer", font=("Helvetica", 24, "bold"), bg="#f0f0f0")
-        about_title.pack(pady=20)
-
-        # Paragraphs describing the platform
-        about_text_1 = tk.Label(self.parent, text=(
+        about_text = tk.Label(self.frame, text=(
             "Edu Explorer is a comprehensive platform designed to facilitate and enhance the learning experience. "
             "Our goal is to provide users with access to high-quality educational resources, tutorials, and quizzes, "
             "all in one place. Whether you are a student looking to improve your knowledge or an educator seeking to "
-            "share your expertise, Edu Explorer offers a range of tools and features to support your educational journey."
+            "share your expertise, Edu Explorer offers a range of tools and features to support your educational journey. "
+            "Explore our platform to discover a variety of learning materials and engage with a community of learners and educators."
         ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-        about_text_1.pack(pady=15)
-
-        about_text_2 = tk.Label(self.parent, text=(
-            "At Edu Explorer, we believe that education should be engaging, accessible, and inclusive. Whether you're preparing "
-            "for an upcoming exam, exploring new subjects, or improving existing skills, our platform offers a variety of courses, "
-            "interactive quizzes, and educational tutorials tailored to meet individual learning needs."
-        ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-        about_text_2.pack(pady=15)
-
-        about_text_3 = tk.Label(self.parent, text=(
-            "For educators, we provide a suite of tools designed to enhance teaching efficiency, including options for creating "
-            "custom quizzes, tracking student progress, and sharing expertise with a global audience. Our goal is to foster a collaborative "
-            "environment where students and educators alike can share knowledge, improve skills, and grow together as part of a vibrant learning community."
-        ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-        about_text_3.pack(pady=15)
-
-        about_text_4 = tk.Label(self.parent, text=(
-            "Explore Edu Explorer today and become part of a community committed to making learning an exciting and rewarding journey."
-        ), font=("Helvetica", 12), bg="#f0f0f0", wraplength=760)
-        about_text_4.pack(pady=15)
-
-        # Optional: Add an image, logo, or any other graphical content for the About page
-        # For example, if you want to display an image:
-        # image = tk.PhotoImage(file="path/to/your/image.png")
-        # image_label = tk.Label(self.parent, image=image, bg="#f0f0f0")
-        # image_label.image = image  # Keep a reference to avoid garbage collection
-        # image_label.pack(pady=20)
-
-        # Add any additional buttons or navigation items as needed
-        # For example, a "Learn More" button could be added below the text
-        learn_more_button = tk.Button(self.parent, text="Learn More", font=("Helvetica", 12), bg="#007acc", fg="white",
-                                      command=self.learn_more_action)
-        learn_more_button.pack(pady=20)
-
-    # Sample action for the "Learn More" button
-    def learn_more_action(self):
-        print("Redirecting to more information about Edu Explorer...")
-
+        about_text.pack(pady=10)
