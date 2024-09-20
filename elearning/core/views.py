@@ -3,11 +3,12 @@ from django.shortcuts import render, get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, viewsets, generics, exceptions
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, APIException
 from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
 # from django_ratelimit.decorators import ratelimit
@@ -128,7 +129,16 @@ class CourseUpdateView(APIView):
 # Delete Course View
 class CourseDeleteView(APIView):
     permission_classes = [IsAuthenticated]
-
+    def get(self, request, course_id):
+        try:
+            course = get_object_or_404(Course, id=course_id)
+            serializer = CourseSerializer(course)
+            return Response(serializer.data)
+        except Course.DoesNotExist:
+            return Response({"error": "Course not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error fetching course detail: {e}")
+            return Response({"error": "Something went wrong"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     def delete(self, request, pk):
         course = get_object_or_404(Course, pk=pk)
         if course.instructor != request.user:
@@ -142,11 +152,33 @@ class CourseDetailView(APIView):
         serializer = CourseSerializer(course)
         return Response(serializer.data) 
 
+# Pagination class
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+class PaginationError(APIException):
+    status_code = 400
+    default_detail = "Invalid pagination parameters."
+
 class CourseListView(APIView):
-    def get(self, request):
-        courses = Course.objects.select_related('instructor').all()
-        serializer = CourseSerializer(courses, many=True)
-        return Response(serializer.data)
+    queryset = Course.objects.all()
+    serializer_class = CourseSerializer
+    pagination_class = StandardResultsSetPagination
+
+    def get(self, request, *args, **kwargs):
+        logger.info(f"Course list requested by user {request.user}")
+        try:
+            return super().get(request, *args, **kwargs)
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error fetching course list: {e}")
+            return Response({"error": "Unable to retrieve courses at the moment"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # courses = Course.objects.select_related('instructor').all()
+        # serializer = CourseSerializer(courses, many=True)
+        # return Response(serializer.data)
 
 class CourseModuleListView(APIView):
     def get(self, request, course_id):

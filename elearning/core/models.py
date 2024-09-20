@@ -107,6 +107,9 @@ class Question(models.Model):
 
     def __str__(self):
         return self.text
+    def set_correct_answer(self, answer):
+        self.correct_answer = answer
+        self.save()
 
 class QuizProgressManager(models.Manager):
     def get_incomplete_quizzes(self, user):
