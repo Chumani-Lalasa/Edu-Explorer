@@ -89,5 +89,5 @@ urlpatterns = [
     path('api/notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
 
     # lessons based on user preferences
-    path('courses/<int:course_id>/lessons/',views. LessonListView.asView(), name='course-lessons'),
+    path('courses/<int:course_id>/lessons/',views. LessonListView.as_view(), name='course-lessons'),
 ]
