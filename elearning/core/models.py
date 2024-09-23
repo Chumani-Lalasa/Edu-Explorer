@@ -72,6 +72,9 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField()
     order = models.PositiveBigIntegerField()
+    rogress = models.CharField(max_length=50)  # e.g., "completed", "incomplete"
+    lesson_type = models.CharField(max_length=50)  # e.g., "video", "reading"
+    category = models.CharField(max_length=50)
 
     class Meta:
         ordering = ['order']

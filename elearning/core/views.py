@@ -17,11 +17,12 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer, ContentProgress, Notification
-from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer, ContentProgressSerializer, NotificationSerializer
+from .models import Course, Content, Module, CourseProgress, QuizProgress, QuestionAnswer, Course, Quiz, Question, Answer, ContentProgress, Notification, Lesson
+from .serializers import CourseProgressSerializer, QuizProgressSerializer, QuestionAnswerSerializer, QuizSerializer, QuestionSerializer, AnswerSerializer, CourseSerializer, ModuleSerializer, ContentSerializer, ContentProgressSerializer, NotificationSerializer, LessonSerializer
 from rest_framework.throttling import UserRateThrottle
 from .permissions import IsAdminUser, IsInstructorUser, IsStudentUser
 from .utils import check_incomplete_content, check_incomplete_quizzes
+from rest_framework.generics import ListAPIView
 logger = logging.getLogger(__name__)
 
 # @csrf_exempt
@@ -515,6 +516,24 @@ class NotificationReadView(generics.UpdateAPIView):
         notification.save()
         return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
 
+class LessonListView(ListAPIView):
+    serializer_class = LessonSerializer
 
+    def get_queryset(self):
+        course_id = self.kwargs.get('course_id')
+        queryset = Lesson.objects.filter(course_id = course_id)
 
+        # Filtering based on query parameters
+        progress = self.request.query_params.get('progress')
+        lesson_type = self.request.query_params.get('lesson_type')
+        category = self.request.query_params.get('category')
+
+        if progress:
+            queryset = queryset.filter(progress = progress)
+        if lesson_type:
+            queryset = queryset.filter(lesson_type = lesson_type)
+        if category:
+            queryset = queryset.filter(category = category)
+            
+        return queryset
 
