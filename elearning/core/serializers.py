@@ -33,7 +33,7 @@ class ContentSerializer(serializers.ModelSerializer):
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
-        fields = '__all__'
+        fields = ['id', 'title', 'course', 'progress', 'lesson_type', 'category']
 
 # Course Progress Serializer
 class CourseProgressSerializer(serializers.ModelSerializer):
