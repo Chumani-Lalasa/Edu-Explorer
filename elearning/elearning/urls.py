@@ -24,6 +24,7 @@ router = DefaultRouter()
 router.register(r'courses', views.CourseViewSet, basename='course')
 router.register(r'quizzes', views.EvaluateQuizViewSet, basename='quiz')
 router.register(r'questions', views.QuestionViewSet, basename='question')
+router.register(r'api/answers', views.AnswerViewSet, basename='answer')
 # router.register(r'contents', views.ContentViewSet, basename='content')
 # router.register(r'quiz-progress', views.QuizProgressView)
 
@@ -89,5 +90,5 @@ urlpatterns = [
     path('api/notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
 
     # lessons based on user preferences
-    path('courses/<int:course_id>/lessons/',views. LessonListView.asView(), name='course-lessons'),
+    path('courses/<int:course_id>/lessons/',views. LessonListView.as_view(), name='course-lessons'),
 ]
