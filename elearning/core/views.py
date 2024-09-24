@@ -41,7 +41,7 @@ class RegisterView(APIView):
         password = request.data.get('password')
         email = request.data.get('email')
 
-        if not user or not password or not email:
+        if not username or not password or not email:
             return Response({"error": "All fields are required"}, status=status.HTTP_400_BAD_REQUEST)
         
         if len(password) < 8:

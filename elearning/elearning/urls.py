@@ -24,8 +24,6 @@ router = DefaultRouter()
 router.register(r'courses', views.CourseViewSet, basename='course')
 router.register(r'quizzes', views.EvaluateQuizViewSet, basename='quiz')
 router.register(r'questions', views.QuestionViewSet, basename='question')
-# router.register(r'contents', views.ContentViewSet, basename='content')
-# router.register(r'quiz-progress', views.QuizProgressView)
 
 question_list = views.QuestionViewSet.as_view({
     'get': 'list',
@@ -46,6 +44,7 @@ urlpatterns = [
     path('api/courses/create/', views.CourseCreateView.as_view(), name='course-create'),
     path('api/courses/<int:pk>/update/', views.CourseUpdateView.as_view(), name='course-update'),
     path('api/courses/<int:pk>/delete/', views.CourseDeleteView.as_view(), name='course-delete'),
+    path('api/courses/', views.CourseListView.as_view(), name='course-list'),
 
     # Modules and contents
     path('api/courses/<int:course_id>/modules/create/', views.ModuleCreateView.as_view(), name='module-create'),
@@ -70,7 +69,6 @@ urlpatterns = [
     path('api/quizzes/<int:pk>/', views.QuizDetailView.as_view(), name='quiz-detail'),
     path('api/quizzes/<int:course_id>/create/', views.QuizCreateView.as_view(), name='quiz-create'),
     path('api/quizzes/<int:pk>/evaluate/', views.EvaluateQuizViewSet.as_view({'post': 'evaluate'}), name='evaluate-quiz'),
-    # path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),
 
     # Router URLs
     path('', include(router.urls)),
@@ -88,6 +86,6 @@ urlpatterns = [
     path('api/notifications/create/', views.NotificationCreateView.as_view(), name='notification-create'), 
     path('api/notifications/<int:pk>/read/', views.NotificationReadView.as_view(), name='notification-read'),
 
-    # lessons based on user preferences
-    path('courses/<int:course_id>/lessons/',views. LessonListView.asView(), name='course-lessons'),
+    # Lessons based on user preferences
+    path('courses/<int:course_id>/lessons/', views.LessonListView.as_view(), name='course-lessons'),
 ]
