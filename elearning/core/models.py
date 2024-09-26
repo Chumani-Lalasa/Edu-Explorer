@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-# from .models import Course, Quiz, Question
-# from .models import Course, Quiz, Question
 
 # Create your models here.
 
@@ -54,6 +52,8 @@ class Content(models.Model):
         ('quiz', 'Quiz'),
         ('file', 'File'),
     ]
+    title = models.CharField(max_length=255, default='Untitle Content')
+    description = models.TextField(default='No description provided')
     module = models.ForeignKey(Module, related_name='contents', on_delete=models.CASCADE)
     content_type = models.CharField(max_length=50, choices=CONTENT_TYPE_CHOICES)  # e.g., "video", "article", "quiz"
     text = models.TextField(blank=True)  # Used for articles, descriptions, etc.
@@ -84,8 +84,8 @@ class Lesson(models.Model):
     
 # Quiz Model
 class Quiz(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_index=True)
+    title = models.CharField(max_length=255)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -94,7 +94,7 @@ class Quiz(models.Model):
     
 # Answer
 class Answer(models.Model):
-    question = models.ForeignKey('Question', related_name='answers_list', on_delete=models.CASCADE)
+    question = models.ForeignKey('Question', related_name='answers', on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
 
@@ -120,16 +120,17 @@ class QuizProgressManager(models.Manager):
 
 # Model to track quiz progress      
 class QuizProgress(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    quiz = models.ForeignKey(Quiz, related_name='progress', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, db_index=True)
+    quiz = models.ForeignKey(Quiz, related_name='progress', on_delete=models.CASCADE, db_index=True)
     score = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
     feedback = models.TextField(blank=True)
+    progress = models.IntegerField(default=0)
 
     @classmethod
     def get_incomplete_quizzes(cls, user):
-        return Quiz.objects.filter(progress__user=user, progress__completed=False).distinct()
+        return Quiz.objects.filter(progress__user=user, progress__completed=False).distinct().select_related('course')
 
     def __str__(self):
         return f'{self.user.username} - {self.quiz.title}'
@@ -148,10 +149,14 @@ class QuestionAnswer(models.Model):
 class CourseProgress(models.Model):
     user = models.ForeignKey(User, related_name='course_progress', on_delete=models.CASCADE)
     course = models.ForeignKey(Course, related_name='progress', on_delete=models.CASCADE)
-    completed_modules = models.ManyToManyField('Module', blank=True)
     completion_status = models.BooleanField(default=False)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    completed_modules = models.ManyToManyField(Module, blank=True, related_name='completed_progress') 
+    completed_content = models.ManyToManyField(Content, blank=True, related_name='completed_progress_content')  
+    
+    class Meta:
+        unique_together = ('user', 'course')
 
     def __str__(self):
         return f'{self.user.username} - {self.course.title}'
@@ -171,6 +176,7 @@ class ContentProgress(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     content = models.ForeignKey(Content, related_name='progress', on_delete=models.CASCADE)
     completed = models.BooleanField(default=False)
+    viewed = models.BooleanField(default=False)
     viewed_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

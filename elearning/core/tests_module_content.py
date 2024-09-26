@@ -8,10 +8,16 @@ from .models import Course, Module, Content, ContentProgress
 class ModuleContentTests(APITestCase):
 
     def setUp(self):
+        # Create a test user and log in
         self.user = User.objects.create_user(username='testuser', password='testpass')
         self.client.login(username='testuser', password='testpass')
+
+        # Create a course and module
         self.course = Course.objects.create(title='Test Course', description='Course Description', instructor=self.user)
         self.module = Module.objects.create(course=self.course, title='Test Module', description='Module Description', order=1)
+
+        # Create initial content
+        self.content = Content.objects.create(module = self.module, content_type='article', order=1)
 
     def test_create_module(self):
         url = reverse('module-create', kwargs={'course_id': self.course.id})
@@ -44,9 +50,13 @@ class ModuleContentTests(APITestCase):
         self.assertEqual(Module.objects.count(), 0)
 
     def test_create_content(self):
+        # The Content table starts empty before the test
+        Content.objects.all().delete()
+
         url = reverse('content-create', args=[self.module.id])
         data = {'content_type': 'video', 'text': 'New Content Description', 'module': self.module.id, 'order': 1}
         response = self.client.post(url, data, format='json')
+
         print(response.data)  # Print response data to debug
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Content.objects.count(), 1)
@@ -62,16 +72,33 @@ class ModuleContentTests(APITestCase):
         self.assertEqual(content.text, 'Updated Content Description')
 
     def test_delete_content(self):
-        content = Content.objects.create(module=self.module, content_type='video', text='Content to Delete', order=1)
-        url = reverse('content-delete', kwargs={'pk': content.id})
+        # Create the content to be deleted
+        content_to_delete = Content.objects.create(module=self.module, content_type='video', text='Content to Delete', order=2)
+        
+        # Assert there is 2 content items
+        self.assertEqual(Content.objects.count(), 2)
+
+        # Prepare the delete request
+        url = reverse('content-delete', kwargs={'pk': content_to_delete.id})
         response = self.client.delete(url)
+
+        # Output
+        print("Response Status Code:", response.status_code)
+        print("Response Data:", response.data)
+
+        # Assert deletion was successful
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(Content.objects.count(), 0)
+        self.assertEqual(Content.objects.count(), 1)
 
     def test_mark_content_as_viewed(self):
-        content = Content.objects.create(module=self.module, content_type='video', text='Video Content Description', order=1)
-        url = reverse('content-progress', kwargs={'content_id': content.id})
+        # Make a POST request to mark the content as viewed
+        url = reverse('content-progress', kwargs={'content_id': self.content.id})
         data = {'viewed': True}
+        
         response = self.client.post(url, data, format='json')
+        
+        # Check if the response status is OK
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(ContentProgress.objects.filter(user=self.user, content=content, viewed=True).exists())
+        
+        # Verify that ContentProgress for the user and content is marked as viewed
+        self.assertTrue(ContentProgress.objects.filter(user=self.user, content=self.content, viewed=True).exists())

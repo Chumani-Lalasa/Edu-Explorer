@@ -8,6 +8,7 @@ from django.http import HttpResponse, JsonResponse, Http404
 from django.contrib.auth.models import User
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authtoken.models import Token
+from rest_framework.generics import GenericAPIView
 from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import authenticate, login, logout
 from django.views.decorators.csrf import csrf_exempt
@@ -283,27 +284,48 @@ class ContentProgressView(APIView):
 
     def get(self, request, content_id):
         user = request.user
-        content = get_object_or_404(Content, id = content_id)
+        content = get_object_or_404(Content, id=content_id)
 
         try:
-            progress = ContentProgress.objects.get(user = user, content = content)
+            progress = ContentProgress.objects.get(user=user, content=content)
         except ContentProgress.DoesNotExist:
-            return Response({"message" : "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"message": "Content progress not found"}, status=status.HTTP_404_NOT_FOUND)
+
         serializer = ContentProgressSerializer(progress)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def post(self, request, content_id):
         content = get_object_or_404(Content, id=content_id)
-        if content.module.course.instructor != request.user:
-            return Response({"error": "You are not authorized to mark content as viewed."}, status=status.HTTP_403_FORBIDDEN)
         viewed = request.data.get('viewed', False)
-        ContentProgress.objects.update_or_create(
+
+        # Update or create the progress record
+        progress, created = ContentProgress.objects.update_or_create(
             user=request.user,
             content=content,
             defaults={'viewed': viewed}
         )
-        return Response({"status": "Content progress updated"}, status=status.HTTP_200_OK)
 
+        return Response({"message": "Progress updated successfully", "viewed": viewed}, status=status.HTTP_200_OK)
+
+    def mark_content_as_viewed(request, content_id):
+        content = get_object_or_404(Content, id=content_id)
+        content_progress, created = ContentProgress.objects.get_or_create(
+            user=request.user, content=content
+        )
+        content_progress.viewed = True
+        content_progress.save()
+
+        return Response({'viewed': True}, status=status.HTTP_200_OK)
+
+def check_incomplete_content(user, course_id):
+    # Logic to find incomplete content for the user's course
+    course_progress = get_object_or_404(CourseProgress, user=user, course_id=course_id)
+    all_content = Content.objects.filter(module__course_id=course_id)
+    completed_content_ids = course_progress.completed_content.values_list('id', flat=True)
+    
+    # Filter out completed content
+    incomplete_content = all_content.exclude(id__in=completed_content_ids)
+    return [{'id': content.id, 'type': content.content_type, 'text': content.text} for content in incomplete_content]
 
 class CourseProgressView(APIView):
     permission_classes = [IsAuthenticated]
@@ -316,7 +338,12 @@ class CourseProgressView(APIView):
         )
         incomplete_content = check_incomplete_content(request.user, course_id)
         serializer = CourseProgressSerializer(progress)
-        return Response({"progress":serializer.data, "incomplete_content": incomplete_content})
+
+        return Response({
+            "course": progress.course.id,
+            "progress": serializer.data,
+            "incomplete_content": incomplete_content
+        })
 
     def post(self, request, course_id):
         course = get_object_or_404(Course, id=course_id)
@@ -326,6 +353,7 @@ class CourseProgressView(APIView):
         progress.save()
         serializer = CourseProgressSerializer(progress)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
 
 @method_decorator(cache_page(60 * 15), name='dispatch')
 class CourseListView(generics.ListAPIView):
@@ -336,12 +364,20 @@ class CourseListView(generics.ListAPIView):
 class QuestionAnswerView(APIView):
     def post(self, request, question_id):
         question = get_object_or_404(Question, id=question_id)
-        selected_answer = request.data.get('selected_answer')
-        is_correct = selected_answer == question.correct_answer
+        selected_answer_id = request.data.get('selected_answer')
+
+        # get the selected answer object
+        selected_answer = get_object_or_404(Answer, id = selected_answer_id)
+
+        # check if the selected answer is correct
+        is_correct = selected_answer.id == question.correct_answer.id
+
         answer, created = QuestionAnswer.objects.get_or_create(user=request.user, question=question)
-        answer.selected_answer = selected_answer
+        answer.selected_answer = selected_answer.id
         answer.is_correct = is_correct
         answer.save()
+
+        # serialize the response
         serializer = QuestionAnswerSerializer(answer)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -357,10 +393,27 @@ class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
 
-class QuizProgressView(APIView):
+class QuizProgressView(GenericAPIView):
     queryset = QuizProgress.objects.all()
     serializer_class = QuizProgressSerializer
     permission_classes = [IsAuthenticated]
+
+    def post(self, request, quiz_id):
+        quiz = get_object_or_404(Quiz, id=quiz_id)
+        progress, created = QuizProgress.objects.get_or_create(user=request.user, quiz=quiz)
+        
+        if created:
+            # If a new progress was created, set the details
+            progress.score = request.data.get('score', 0)  # Default score if not provided
+            progress.completed = request.data.get('completed', False)
+            if progress.completed:
+                progress.completed_at = request.data.get('completed_at', timezone.now())
+            progress.save()
+            serializer = QuizProgressSerializer(progress)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            # If the progress already exists, consider if you want to return 200 or handle it differently
+            return Response({"detail": "Progress already exists."}, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -368,27 +421,11 @@ class QuizProgressView(APIView):
         return Response(serializer.data)
     
     def get(self, request, quiz_id):
+        print("Requested Quiz ID:", quiz_id)
         progress = get_object_or_404(QuizProgress, user=request.user, quiz_id=quiz_id)
         incomplete_quizzes = check_incomplete_quizzes(request.user)
         serializer = QuizProgressSerializer(progress)
         return Response({"progress": serializer.data, "incomplete_quizzes": incomplete_quizzes}, status=status.HTTP_200_OK)
-
-    def post(self, request, quiz_id):
-        quiz = get_object_or_404(Quiz, id=quiz_id)
-        progress, created = QuizProgress.objects.get_or_create(user=request.user, quiz=quiz)
-        
-        # update the progress details
-        progress.score = request.data.get('score', progress.score)
-        progress.completed = request.data.get('completed', progress.completed)
-        if progress.completed:
-            progress.completed_at = request.data.get('completed_at', progress.completed_at)
-        progress.save()
-        serializer = QuizProgressSerializer(progress)
-
-        if created:
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        else:
-            return Response(serializer.data, status=status.HTTP_200_OK)
 
 class QuizViewSet(viewsets.ModelViewSet):
     queryset = Quiz.objects.all()
@@ -420,7 +457,7 @@ class EvaluateQuizViewSet(viewsets.ViewSet):
             return Response({'error': 'No answers provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         correct = 0
-        total = quiz.questions.count()
+        total = quiz.question_set.count()
 
         print("Total Question:", total)
 
@@ -434,9 +471,10 @@ class EvaluateQuizViewSet(viewsets.ViewSet):
             print("Question ID:", question_id, "Selected Answer ID:", selected_answer_id)  # Debug
             print("Correct Answer ID:", question.correct_answer) 
 
-            if question.correct_answer == answer_obj.id:
+            if answer_obj.is_correct:
                 correct += 1
-
+        print("Question Id:", question_id, "Selected Answer Id:", selected_answer_id)
+        print("Correct Answer Id:", question.correct_answer)
         print("Correct Answers:", correct)
         score_fraction = (correct / total) if total else 0
 

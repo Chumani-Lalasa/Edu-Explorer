@@ -37,9 +37,12 @@ class LessonSerializer(serializers.ModelSerializer):
 
 # Course Progress Serializer
 class CourseProgressSerializer(serializers.ModelSerializer):
+    completed_content = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    completed_modules = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    
     class Meta:
         model = CourseProgress
-        fields = ['user', 'course', 'completed_modules', 'completion_status', 'started_at', 'completed_at']
+        fields = ['user', 'course', 'completed_modules', 'completion_status', 'started_at', 'completed_at', 'completed_content']
 
 # Quiz Serializer
 class QuizSerializer(serializers.ModelSerializer):
