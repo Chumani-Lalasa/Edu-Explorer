@@ -205,8 +205,8 @@ class ModuleCreateView(APIView):
         course = get_object_or_404(Course, id=course_id)
         logger.info(f'Course instructor: {course.instructor}')
         
-        # if course.instructor != request.user:
-        #     return Response({"error" : "You are not authorized to add modules to this course."}, status=status.HTTP_403_FORBIDDEN)
+        if course.instructor != request.user:
+            return Response({"error" : "You are not authorized to add modules to this course."}, status=status.HTTP_403_FORBIDDEN)
         
         serializer = ModuleSerializer(data=request.data)
         if serializer.is_valid():
