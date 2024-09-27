@@ -12,7 +12,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
-        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'instructor']
+        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'instructor', 'name', 'duration']
         read_only_fields = ['id', 'created_at', 'updated_at', 'instructor']
 
 # Module Serializer
