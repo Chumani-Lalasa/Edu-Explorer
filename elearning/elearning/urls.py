@@ -54,6 +54,13 @@ urlpatterns = [
     path('api/contents/<int:pk>/update/', views.ContentUpdateView.as_view(), name='content-update'),
     path('api/contents/<int:pk>/delete/', views.ContentDeleteView.as_view(), name='content-delete'),
 
+    # Lessons management
+    path('api/modules/<int:module_id>/lessons/create/', views.LessonCreateView.as_view(), name='lesson-create'),
+    path('api/lessons/<int:pk>/update/', views.LessonUpdateView.as_view(), name='lesson-update'),
+    path('api/lessons/<int:pk>/delete/', views.LessonDeleteView.as_view(), name='lesson-delete'),
+    # path('api/lessons/<int:pk>/', views.LessonDetailView.as_view(), name='lesson-detail'),
+    path('api/modules/<int:module_id>/lessons/', views.LessonListView.as_view(), name='lesson-list'),
+
     # Progress tracking
     path('api/progress/course/<int:course_id>/', views.CourseProgressView.as_view(), name='course-progress'),
     path('api/progress/quiz/<int:quiz_id>/', views.QuizProgressView.as_view(), name='quiz-progress'),

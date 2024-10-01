@@ -214,6 +214,7 @@ class ModuleCreateView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         logger.error(f'Serializer errors: {serializer.errors}')  # Log errors for debugging
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 
+
 # Update Module View
 class ModuleUpdateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -574,4 +575,60 @@ class LessonListView(ListAPIView):
             queryset = queryset.filter(category = category)
             
         return queryset
+
+# Create Lesson view
+logger = logging.getLogger(__name__)
+class LessonCreateView(generics.CreateAPIView):
+    queryset = Lesson.objects.all()
+    serializer_class = LessonSerializer
+
+    def post(self, request, module_id):
+        logger.info(f'Received request to create lesson for module_id: {module_id}')
+        logger.info(f'Authenticated user: {request.user}')
+        
+        # Fetch the module
+        module = get_object_or_404(Module, id=module_id)
+        logger.info(f'Module title: {module.title}')
+
+        # Optional: Check if the user is allowed to add lessons to this module
+        # if module.course.instructor != request.user:
+        #     return Response({"error": "You are not authorized to add lessons to this module."}, 
+        #                     status=status.HTTP_403_FORBIDDEN)
+
+        # Create the lesson, associating it with the course
+        serializer = LessonSerializer(data=request.data)
+        if serializer.is_valid():
+            lesson = serializer.save(module=module, course=module.course)  # Associate course from module
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        logger.error(f'Serializer errors: {serializer.errors}')
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Update Lesson View
+class LessonUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, pk):
+        lesson = get_object_or_404(Lesson, pk=pk)
+        if lesson.course.instructor != request.user:
+            return Response({"error": "You are not authorized to update this lesson."}, status=status.HTTP_403_FORBIDDEN)
+        
+        serializer = LessonSerializer(lesson, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# Delete Lesson View
+class LessonDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        lesson = get_object_or_404(Lesson, pk=pk)
+        if lesson.course.instructor != request.user:
+            return Response({"error": "You are not authorized to delete this lesson."}, status=status.HTTP_403_FORBIDDEN)
+        
+        lesson.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
