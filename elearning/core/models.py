@@ -69,8 +69,9 @@ class Content(models.Model):
 # Lesson Model
 class Lesson(models.Model):
     course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE)
+    module = models.ForeignKey(Module, related_name='lessons', on_delete=models.CASCADE, null=True, blank=True)
     title = models.CharField(max_length=200)
-    content = models.TextField()
+    content = models.TextField()                                                                                                                                                                                    
     order = models.PositiveBigIntegerField()
     progress = models.CharField(max_length=50, default=0)  # e.g., "completed", "incomplete"
     lesson_type = models.CharField(max_length=50, default='Standard')  # e.g., "video", "reading"
