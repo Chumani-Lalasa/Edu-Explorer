@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from .models import Course, Module, Content, Notification
 from .models import UserProfile, Question, Quiz, Lesson ,CourseProgress, QuizProgress, QuestionAnswer, Answer, ContentProgress
+from django.core.validators import URLValidator
+from django.core.exceptions import ValidationError
 
 # UserProfile Serializer
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -22,12 +24,7 @@ class ModuleSerializer(serializers.ModelSerializer):
         fields = ['id', 'course', 'title', 'description', 'order']
         read_only_fields = ['course']
 
-# Content Serializer
-class ContentSerializer(serializers.ModelSerializer):
-    module = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all(), required=True)
-    class Meta:
-        model = Content
-        fields = ['id', 'module', 'content_type', 'text', 'file', 'order']
+
 
 # Lesson Serializer
 class LessonSerializer(serializers.ModelSerializer):
@@ -44,11 +41,44 @@ class CourseProgressSerializer(serializers.ModelSerializer):
         model = CourseProgress
         fields = ['user', 'course', 'completed_modules', 'completion_status', 'started_at', 'completed_at', 'completed_content']
 
+# Answer Serializer
+class AnswerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Answer
+        fields = ['text', 'is_correct']
+
+class QuestionSerializer(serializers.ModelSerializer):
+    answers = AnswerSerializer(many=True)
+
+    class Meta:
+        model = Question
+        fields = ['text', 'difficulty', 'answers']
+
+    def create(self, validated_data):
+        answers_data = validated_data.pop('answers', [])  # Extract answers from validated data
+        question = Question.objects.create(**validated_data)  # Create the question
+        # Loop through the answers and create them, linking to the created question
+        for answer_data in answers_data:
+            Answer.objects.create(question=question, **answer_data)
+        return question
+    
 # Quiz Serializer
 class QuizSerializer(serializers.ModelSerializer):
+    questions = QuestionSerializer(many=True)
+
     class Meta:
         model = Quiz
-        fields = '__all__'
+        fields = ['title', 'description', 'questions']
+
+    def create(self, validated_data):
+        questions_data = validated_data.pop('questions', [])  # Get questions data
+        quiz = Quiz.objects.create(**validated_data)  # Create the quiz
+        for question_data in questions_data:
+            QuestionSerializer().create({**question_data, 'quiz': quiz})  # Create each question
+            # question.quiz = quiz  # Set the quiz for the question
+            # question.save()  # Save the question with the quiz association
+            # question = Question.objects.create(quiz=quiz, **question_data)
+        return quiz
 
 # Quiz Progress Serializer
 class QuizProgressSerializer(serializers.ModelSerializer):
@@ -62,17 +92,37 @@ class QuestionAnswerSerializer(serializers.ModelSerializer):
         model = QuestionAnswer
         fields = ['user', 'question', 'selected_answer', 'is_correct']
 
-# Question Serializer
-class QuestionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Question
-        fields = '__all__'
+# Content Serializer
+class ContentSerializer(serializers.ModelSerializer):
+    module = serializers.PrimaryKeyRelatedField(queryset=Module.objects.all(), required=True)
+    lesson = serializers.PrimaryKeyRelatedField(queryset=Lesson.objects.all(), required=True)
+    quiz = QuizSerializer(required=False)  # Accepting raw quiz data as JSON for flexibility
 
-# Answer Serializer
-class AnswerSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Answer
-        fields = '__all__'
+        model = Content
+        fields = ['id', 'lesson', 'module', 'content_type', 'text', 'file', 'order', 'video_url', 'quiz']
+
+    def validate_video_url(self, value):
+        if value:
+            validate = URLValidator()
+            try:
+                validate(value)
+            except ValidationError:
+                raise serializers.ValidationError("Enter a valid URL.")
+        return value
+
+    def validate(self, attrs):
+        return attrs
+
+    def create(self, validated_data):
+        quiz_data = validated_data.pop('quiz', None)  # Get the quiz data if provided
+        content = Content.objects.create(**validated_data)  # Create the content instance
+        
+        if quiz_data:
+            # Create the Quiz instance first
+            quiz_instance = QuizSerializer().create({**quiz_data, 'content': content})
+
+        return content
 
 class ContentProgressSerializer(serializers.ModelSerializer):
     class Meta:

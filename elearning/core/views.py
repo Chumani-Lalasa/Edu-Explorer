@@ -247,8 +247,8 @@ class ContentCreateView(APIView):
 
     def post(self, request, module_id):
         module = get_object_or_404(Module, id=module_id)
-        if module.course.instructor != request.user:
-            return Response({"error" : "You are not authorized to add content to this module."}, status=status.HTTP_403_FORBIDDEN)
+        # if module.course.instructor != request.user:
+        #     return Response({"error" : "You are not authorized to add content to this module."}, status=status.HTTP_403_FORBIDDEN)
         serializer = ContentSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save(module=module)
@@ -428,17 +428,92 @@ class QuizProgressView(GenericAPIView):
         serializer = QuizProgressSerializer(progress)
         return Response({"progress": serializer.data, "incomplete_quizzes": incomplete_quizzes}, status=status.HTTP_200_OK)
 
-class QuizViewSet(viewsets.ModelViewSet):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
+# class QuizViewSet(viewsets.ModelViewSet):
+#     queryset = Quiz.objects.all()
+#     serializer_class = QuizSerializer
+
+#     def create(self, request, *args, **kwargs):
+#         quiz_data = request.data
+#         # Create the Quiz instance
+#         quiz = Quiz.objects.create(
+#             title=quiz_data['title'],
+#             description=quiz_data['description']
+#         )
+        
+#         # Save questions and answers
+#         for question_data in quiz_data['questions']:
+#             question = Question.objects.create(
+#                 quiz=quiz,
+#                 text=question_data['text'],
+#                 difficulty=question_data['difficulty']
+#             )
+#             # Assuming you have answers in the request data
+#             for answer_data in question_data.get('answers', []):
+#                 Answer.objects.create(
+#                     question=question,
+#                     text=answer_data['text'],
+#                     is_correct=answer_data['is_correct']
+#                 )
+        
+#         return Response({'status': 'Quiz created successfully'})
 
 class QuizDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
 
-class QuizCreateView(generics.CreateAPIView):
-    queryset = Quiz.objects.all()
-    serializer_class = QuizSerializer
+# class QuizCreateView(APIView):
+#     def post(self, request, *args, **kwargs):
+#         quiz_data = request.data
+#         logger.info("Received quiz data: %s", quiz_data)
+
+#         try:
+#             # Create the Content instance
+#             content = Content.objects.create(
+#                 lesson=quiz_data['lesson'],
+#                 module=quiz_data['module'],
+#                 content_type=quiz_data['content_type'],
+#                 text=quiz_data['text'],
+#                 order=quiz_data['order'],
+#                 video_url=quiz_data['video_url'],
+#             )
+
+#             # Create the Quiz instance
+#             quiz = Quiz.objects.create(
+#                 content=content,
+#                 title=quiz_data['quiz']['title'],
+#                 description=quiz_data['quiz']['description']
+#             )
+
+#             # Loop through questions and create them with answers
+#             for question_data in quiz_data['quiz']['questions']:
+#                 question = Question.objects.create(
+#                     quiz=quiz,
+#                     text=question_data['text'],
+#                     difficulty=question_data['difficulty']
+#                 )
+
+#                 # Create answers for each question
+#                 for answer_data in question_data.get('answers', []):
+#                     Answer.objects.create(
+#                         question=question,
+#                         text=answer_data['text'],
+#                         is_correct=answer_data.get('is_correct', False)
+#                     )
+
+#             return Response({'status': 'Quiz created successfully'}, status=status.HTTP_201_CREATED)
+#         except Exception as e:
+#             logger.error("Error creating quiz: %s", str(e))
+#             return Response({'error': 'An error occurred'}, status=status.HTTP_400_BAD_REQUEST)
+
+class QuizCreateView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = QuizSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'Quiz created successfully'}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class QuizListCreateView(generics.ListCreateAPIView):
     queryset = Quiz.objects.all()
@@ -591,9 +666,9 @@ class LessonCreateView(generics.CreateAPIView):
         logger.info(f'Module title: {module.title}')
 
         # Optional: Check if the user is allowed to add lessons to this module
-        # if module.course.instructor != request.user:
-        #     return Response({"error": "You are not authorized to add lessons to this module."}, 
-        #                     status=status.HTTP_403_FORBIDDEN)
+        if module.course.instructor != request.user:
+            return Response({"error": "You are not authorized to add lessons to this module."}, 
+                            status=status.HTTP_403_FORBIDDEN)
 
         # Create the lesson, associating it with the course
         serializer = LessonSerializer(data=request.data)
@@ -610,6 +685,7 @@ class LessonUpdateView(APIView):
 
     def put(self, request, pk):
         lesson = get_object_or_404(Lesson, pk=pk)
+        
         if lesson.course.instructor != request.user:
             return Response({"error": "You are not authorized to update this lesson."}, status=status.HTTP_403_FORBIDDEN)
         
