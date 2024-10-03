@@ -43,28 +43,7 @@ class Module(models.Model):
 
     def __str__(self):
         return f'{self.title} - {self.course.title}'
-    
-# Content Model (New)
-class Content(models.Model):
-    CONTENT_TYPE_CHOICES = [
-        ('video', 'Video'),
-        ('article', 'Article'),
-        ('quiz', 'Quiz'),
-        ('file', 'File'),
-    ]
-    title = models.CharField(max_length=255, default='Untitle Content')
-    description = models.TextField(default='No description provided')
-    module = models.ForeignKey(Module, related_name='contents', on_delete=models.CASCADE)
-    content_type = models.CharField(max_length=50, choices=CONTENT_TYPE_CHOICES)  # e.g., "video", "article", "quiz"
-    text = models.TextField(blank=True)  # Used for articles, descriptions, etc.
-    file = models.FileField(upload_to='course_contents/', blank=True)  # Used for files like PDFs, images, etc.
-    order = models.PositiveIntegerField()
-
-    class Meta:
-        ordering = ['order']
-
-    def __str__(self):
-        return f'{self.content_type} - {self.module.title}'
+    pass
     
 # Lesson Model
 class Lesson(models.Model):
@@ -82,38 +61,85 @@ class Lesson(models.Model):
 
     def __str__(self):
         return self.title
-    
+    pass
+      
+# Content Model (Connected to Lesson)
+class Content(models.Model):
+    CONTENT_TYPE_CHOICES = [
+        ('video', 'Video'),
+        ('article', 'Article'),
+        ('quiz', 'Quiz'),
+        ('file', 'File'),
+    ]
+    lesson = models.ForeignKey(Lesson, related_name='contents', on_delete=models.CASCADE, null=True, blank=True)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, null=True, blank=True)
+    title = models.CharField(max_length=255, default='Untitled Content')
+    description = models.TextField(default='No description provided')
+    content_type = models.CharField(max_length=50, choices=CONTENT_TYPE_CHOICES)  # e.g., "video", "article", "quiz"
+    text = models.TextField(blank=True)  # Used for articles, descriptions, etc.
+    file = models.FileField(upload_to='course_contents/', blank=True, null=True)  # Used for files like PDFs, images, etc.
+    video_url = models.URLField(max_length=200,blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return f'{self.content_type} - {self.lesson.title}' 
+
+  
 # Quiz Model
 class Quiz(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, db_index=True)
+    content = models.OneToOneField(Content, related_name='quiz', on_delete=models.CASCADE, null=True, blank=True)  # Optional content field
     title = models.CharField(max_length=255)
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.title
+    pass
     
+
 # Answer
+# class Answer(models.Model):
+#     question = models.ForeignKey('Question', related_name='answers', on_delete=models.CASCADE)
+#     text = models.CharField(max_length=255)
+#     is_correct = models.BooleanField(default=False)
+
+#     def __str__(self):
+#         return self.text
+     
+# # Question Model
+# class Question(models.Model):
+#     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+#     text = models.CharField(max_length=500)
+#     correct_answer = models.ForeignKey(Answer, related_name='correct_for_question', on_delete=models.CASCADE, null=True, blank=True)
+#     difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
+
+#     def __str__(self):
+#         return self.text
+#     def set_correct_answer(self, answer):
+#         self.correct_answer = answer
+#         self.save()
+
+
+# Question Model
+class Question(models.Model):
+    quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
+    text = models.CharField(max_length=500)
+    difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
+
+    def __str__(self):
+        return self.text
+
+# Answer Model
 class Answer(models.Model):
-    question = models.ForeignKey('Question', related_name='answers', on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, related_name='answers', on_delete=models.CASCADE)
     text = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
 
     def __str__(self):
         return self.text
-     
-# Question Model
-class Question(models.Model):
-    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
-    text = models.CharField(max_length=500)
-    correct_answer = models.ForeignKey(Answer, related_name='correct_for_question', on_delete=models.CASCADE, null=True, blank=True)
-    difficulty = models.CharField(max_length=50, choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], default='medium')
-
-    def __str__(self):
-        return self.text
-    def set_correct_answer(self, answer):
-        self.correct_answer = answer
-        self.save()
 
 class QuizProgressManager(models.Manager):
     def get_incomplete_quizzes(self, user):
