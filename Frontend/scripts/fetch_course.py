@@ -7,7 +7,7 @@ def fetch_courses():
     url = "http://127.0.0.1:8000/api/courses/"
     
     # Replace this with your actual token
-    token = "f67327ea1c7286cff49ea480a6f3ad16644c4057"  # Ensure this token is valid and correctly formatted
+    token = "3502b1c84c8f1ba90c78d34f05ea506a9c7c0491"  # Ensure this token is valid and correctly formatted
     
     # Set the headers with the Bearer token for authentication
     headers = {
